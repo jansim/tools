@@ -77,8 +77,8 @@
       max-width: 100%;
       border: 1px solid #e2e8f0;
       cursor: crosshair;
-      background-image: 
-        linear-gradient(45deg, #f0f0f0 25%, transparent 25%), 
+      background-image:
+        linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
         linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
         linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
         linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
@@ -230,25 +230,25 @@
       <input type="file" id="fileInput" accept="image/jpeg, image/png">
       <button id="exampleBtn" class="example-button">Use Example Image</button>
     </div>
-    
+
     <div class="canvas-container">
       <canvas id="imageCanvas"></canvas>
     </div>
-    
+
     <div class="controls" id="controls" style="display: none;">
       <div class="add-color-instructions">Click on the image to select colors to remove</div>
-      
+
       <div class="colors-header">
         <h3>Selected Colors</h3>
         <button id="clearAllBtn" class="clear-all-btn">Clear All</button>
       </div>
-      
+
       <div class="colors-container" id="colorsContainer">
         <div class="no-color-selected" id="noColorsMessage">
           No colors selected yet 🎨
         </div>
       </div>
-      
+
       <div class="slider-container">
         <label for="toleranceSlider">Default Color Tolerance:</label>
         <div style="display: flex; align-items: center;">
@@ -256,7 +256,7 @@
           <span class="slider-value" id="toleranceValue">30%</span>
         </div>
       </div>
-      
+
       <div class="button-row">
         <button id="resetBtn">Reset Image</button>
         <button id="downloadBtn">Download Result</button>
@@ -277,12 +277,12 @@
     const controls = document.getElementById('controls');
     const colorsContainer = document.getElementById('colorsContainer');
     const noColorsMessage = document.getElementById('noColorsMessage');
-    
+
     let ctx = imageCanvas.getContext('2d');
     let originalImage = null;
     let selectedColors = [];
     let colorCounter = 0;
-    
+
     // Event Listeners
     dropArea.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', handleFileUpload);
@@ -293,20 +293,20 @@
     exampleBtn.addEventListener('click', loadExampleImage);
     imageCanvas.addEventListener('click', handleCanvasClick);
     clearAllBtn.addEventListener('click', clearAllColors);
-    
+
     // Setup drag and drop for entire document
     document.addEventListener('dragover', (e) => {
       e.preventDefault();
       dropArea.classList.add('drag-active');
     });
-    
+
     document.addEventListener('dragleave', (e) => {
       // Only remove the class if we're leaving the document
       if (e.relatedTarget === null || e.relatedTarget.nodeName === 'HTML') {
         dropArea.classList.remove('drag-active');
       }
     });
-    
+
     document.addEventListener('drop', (e) => {
       e.preventDefault();
       dropArea.classList.remove('drag-active');
@@ -317,7 +317,7 @@
         }
       }
     });
-    
+
     // Functions
     function handleFileUpload() {
       const file = fileInput.files[0];
@@ -329,12 +329,12 @@
         reader.readAsDataURL(file);
       }
     }
-    
+
     function loadExampleImage() {
       const exampleImagePath = "./example.jpg";
       loadImage(exampleImagePath);
     }
-    
+
     function loadImage(src) {
       originalImage = new Image();
       originalImage.crossOrigin = "Anonymous"; // Handle cross-origin images
@@ -344,27 +344,27 @@
         const maxHeight = 600;
         let width = originalImage.width;
         let height = originalImage.height;
-        
+
         if (width > maxWidth) {
           height = (maxWidth / width) * height;
           width = maxWidth;
         }
-        
+
         if (height > maxHeight) {
           width = (maxHeight / height) * width;
           height = maxHeight;
         }
-        
+
         imageCanvas.width = width;
         imageCanvas.height = height;
-        
+
         // Draw the original image
         ctx.clearRect(0, 0, width, height);
         ctx.drawImage(originalImage, 0, 0, width, height);
-        
+
         // Show controls
         controls.style.display = 'flex';
-        
+
         // Reset color selection
         clearAllColors();
       };
@@ -375,14 +375,14 @@
       };
       originalImage.src = src;
     }
-    
+
     function handleCanvasClick(e) {
       if (!originalImage) return;
-      
+
       const rect = imageCanvas.getBoundingClientRect();
       const x = Math.floor((e.clientX - rect.left) * (imageCanvas.width / rect.width));
       const y = Math.floor((e.clientY - rect.top) * (imageCanvas.height / rect.height));
-      
+
       // Get pixel data at click position
       const pixelData = ctx.getImageData(x, y, 1, 1).data;
       const color = {
@@ -392,16 +392,16 @@
         b: pixelData[2],
         tolerance: parseInt(toleranceSlider.value)
       };
-      
+
       addColorToList(color);
       applyAllColorRemovals();
     }
-    
+
     function addColorToList(color) {
       selectedColors.push(color);
       updateColorsDisplay();
     }
-    
+
     function updateColorsDisplay() {
       // Hide the "no colors" message if we have colors
       if (selectedColors.length > 0) {
@@ -409,35 +409,35 @@
       } else {
         noColorsMessage.style.display = 'block';
       }
-      
+
       // Clear existing color items
       const existingItems = document.querySelectorAll('.color-item');
       existingItems.forEach(item => item.remove());
-      
+
       // Add each color to the container
       selectedColors.forEach(color => {
         const colorItem = document.createElement('div');
         colorItem.className = 'color-item';
         colorItem.dataset.colorId = color.id;
-        
+
         const colorPreview = document.createElement('div');
         colorPreview.className = 'color-preview';
         colorPreview.style.backgroundColor = `rgb(${color.r}, ${color.g}, ${color.b})`;
-        
+
         const colorInfo = document.createElement('div');
         colorInfo.className = 'color-info';
         colorInfo.appendChild(colorPreview);
         colorInfo.appendChild(document.createTextNode(`RGB(${color.r}, ${color.g}, ${color.b})`));
-        
+
         // Create the tolerance slider
         const colorTolerance = document.createElement('div');
         colorTolerance.className = 'color-tolerance';
-        
+
         const toleranceLabel = document.createElement('span');
         toleranceLabel.className = 'color-tolerance-label';
         toleranceLabel.textContent = 'Tolerance:';
         colorTolerance.appendChild(toleranceLabel);
-        
+
         const toleranceSlider = document.createElement('input');
         toleranceSlider.type = 'range';
         toleranceSlider.className = 'color-slider';
@@ -450,77 +450,77 @@
           applyAllColorRemovals();
         });
         colorTolerance.appendChild(toleranceSlider);
-        
+
         const toleranceValue = document.createElement('span');
         toleranceValue.className = 'color-tolerance-value';
         toleranceValue.textContent = `${color.tolerance}%`;
         colorTolerance.appendChild(toleranceValue);
-        
+
         const colorActions = document.createElement('div');
         colorActions.className = 'color-actions';
-        
+
         const removeBtn = document.createElement('button');
         removeBtn.className = 'remove-color-btn';
         removeBtn.textContent = 'Remove';
         removeBtn.addEventListener('click', () => {
           removeColor(color.id);
         });
-        
+
         colorActions.appendChild(removeBtn);
-        
+
         colorItem.appendChild(colorInfo);
         colorItem.appendChild(colorTolerance);
         colorItem.appendChild(colorActions);
-        
+
         colorsContainer.appendChild(colorItem);
       });
     }
-    
+
     function removeColor(colorId) {
       selectedColors = selectedColors.filter(color => color.id !== colorId);
       updateColorsDisplay();
       applyAllColorRemovals();
     }
-    
+
     function clearAllColors() {
       selectedColors = [];
       updateColorsDisplay();
       resetCanvas();
     }
-    
+
     function updateToleranceDisplay() {
       toleranceValue.textContent = `${toleranceSlider.value}%`;
     }
-    
+
     function applyAllColorRemovals() {
       if (!originalImage) return;
-      
+
       // Reset canvas first
       resetCanvas();
-      
+
       if (selectedColors.length === 0) return;
-      
+
       // Get image data
       const imageData = ctx.getImageData(0, 0, imageCanvas.width, imageCanvas.height);
       const data = imageData.data;
-      
+
       // Process each pixel for each selected color
       for (let i = 0; i < data.length; i += 4) {
         const r = data[i];
         const g = data[i+1];
         const b = data[i+2];
-        
+
         // Check against each selected color
         for (const color of selectedColors) {
           const tolerance = color.tolerance * 2.55; // Convert percentage to 0-255 range
-          
+
           // Calculate color distance (simple Euclidean distance in RGB space)
           const distance = Math.sqrt(
             Math.pow(r - color.r, 2) +
             Math.pow(g - color.g, 2) +
             Math.pow(b - color.b, 2)
           );
-          
+
           // If color is within tolerance, make it transparent and break the loop
           if (distance <= tolerance) {
             data[i+3] = 0; // Set alpha to 0 (transparent)
@@ -528,33 +528,33 @@
           }
         }
       }
-      
+
       // Update canvas with new image data
       ctx.putImageData(imageData, 0, 0);
     }
-    
+
     function resetCanvas() {
       if (!originalImage) return;
-      
+
       ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
       ctx.drawImage(originalImage, 0, 0, imageCanvas.width, imageCanvas.height);
     }
-    
+
     function resetImage() {
       if (!originalImage) return;
-      
+
       resetCanvas();
       clearAllColors();
     }
-    
+
     function downloadImage() {
       if (!originalImage) return;
-      
+
       // Create temporary link element
       const link = document.createElement('a');
       link.download = 'transparent-background.png';
       link.href = imageCanvas.toDataURL('image/png');
-      
+
       // Trigger download
       document.body.appendChild(link);
       link.click();
