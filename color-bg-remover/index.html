@@ -103,6 +103,9 @@
       background-color: #cbd5e0;
       cursor: not-allowed;
     }
+    .example-container {
+      text-align: center;
+    }
     .example-button {
       background-color: #38a169;
       margin-top: 10px;
@@ -228,6 +231,9 @@
       </svg>
       <p>Drag & drop an image or click to browse</p>
       <input type="file" id="fileInput" accept="image/jpeg, image/png">
+    </div>
+
+    <div class="example-container">
       <button id="exampleBtn" class="example-button">Use Example Image</button>
     </div>
 
@@ -336,6 +342,9 @@
     }
 
     function loadImage(src) {
+      // Hide example button when an image is loaded
+      exampleBtn.style.display = 'none';
+
       originalImage = new Image();
       originalImage.crossOrigin = "Anonymous"; // Handle cross-origin images
       originalImage.onload = function() {
