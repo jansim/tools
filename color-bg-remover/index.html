@@ -30,10 +30,14 @@
       border-radius: 8px;
       margin-bottom: 20px;
       cursor: pointer;
-      transition: border-color 0.3s;
+      transition: border-color 0.3s, background-color 0.3s;
     }
     .upload-section:hover {
       border-color: #4299e1;
+    }
+    .upload-section.drag-active {
+      border-color: #4299e1;
+      background-color: rgba(66, 153, 225, 0.1);
     }
     .upload-section p {
       color: #718096;
@@ -99,23 +103,12 @@
       background-color: #cbd5e0;
       cursor: not-allowed;
     }
-    .img-container {
-      margin-top: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+    .example-button {
+      background-color: #38a169;
+      margin-top: 10px;
     }
-    #instructions {
-      margin-top: 20px;
-      padding: 15px;
-      background-color: #ebf8ff;
-      border-left: 4px solid #4299e1;
-      border-radius: 4px;
-    }
-    .preview-info {
-      font-size: 0.9em;
-      color: #718096;
-      margin: 5px 0 15px;
+    .example-button:hover {
+      background-color: #2f855a;
     }
     .button-row {
       display: flex;
@@ -123,21 +116,104 @@
       justify-content: center;
       margin-top: 15px;
     }
-    #color-preview {
-      width: 30px;
-      height: 30px;
+    .colors-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 5px;
+    }
+    .color-item {
+      display: flex;
+      align-items: center;
+      padding: 8px;
+      border-radius: 4px;
+      background-color: #f7fafc;
+    }
+    .color-preview {
+      width: 25px;
+      height: 25px;
       border: 1px solid #cbd5e0;
       border-radius: 50%;
       display: inline-block;
       vertical-align: middle;
-      margin-left: 10px;
+      margin-right: 10px;
+      flex-shrink: 0;
     }
     .color-info {
       display: flex;
       align-items: center;
-      justify-content: center;
-      margin: 10px 0;
       font-size: 0.9em;
+      width: 110px;
+      flex-shrink: 0;
+    }
+    .color-tolerance {
+      display: flex;
+      align-items: center;
+      flex-grow: 1;
+      margin: 0 10px;
+    }
+    .color-tolerance-label {
+      margin-right: 8px;
+      white-space: nowrap;
+      font-size: 0.9em;
+    }
+    .color-tolerance-value {
+      width: 30px;
+      text-align: right;
+      font-size: 0.9em;
+      margin-left: 5px;
+    }
+    .color-slider {
+      flex-grow: 1;
+      margin: 0 5px;
+    }
+    .no-color-selected {
+      font-weight: bold;
+      text-align: center;
+      padding: 10px;
+      color: #718096;
+    }
+    .color-actions {
+      display: flex;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+    .remove-color-btn {
+      background-color: #e53e3e;
+      color: white;
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+    .remove-color-btn:hover {
+      background-color: #c53030;
+    }
+    .add-color-instructions {
+      text-align: center;
+      padding: 10px;
+      font-style: italic;
+      color: #718096;
+      margin-bottom: 10px;
+    }
+    .colors-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .colors-header h3 {
+      margin: 0;
+    }
+    .clear-all-btn {
+      background-color: #718096;
+      font-size: 14px;
+      padding: 5px 10px;
+    }
+    .clear-all-btn:hover {
+      background-color: #4a5568;
     }
   </style>
 </head>
@@ -152,6 +228,7 @@
       </svg>
       <p>Drag & drop an image or click to browse</p>
       <input type="file" id="fileInput" accept="image/jpeg, image/png">
+      <button id="exampleBtn" class="example-button">Use Example Image</button>
     </div>
     
     <div class="canvas-container">
@@ -159,32 +236,30 @@
     </div>
     
     <div class="controls" id="controls" style="display: none;">
-      <div class="color-info">
-        <span>Selected color to remove:</span>
-        <div id="color-preview"></div>
-        <span id="color-value" style="margin-left: 10px;">None selected</span>
+      <div class="add-color-instructions">Click on the image to select colors to remove</div>
+      
+      <div class="colors-header">
+        <h3>Selected Colors</h3>
+        <button id="clearAllBtn" class="clear-all-btn">Clear All</button>
+      </div>
+      
+      <div class="colors-container" id="colorsContainer">
+        <div class="no-color-selected" id="noColorsMessage">
+          No colors selected yet 🎨
+        </div>
       </div>
       
       <div class="slider-container">
-        <label for="toleranceSlider">Color Tolerance:</label>
-        <input type="range" id="toleranceSlider" min="0" max="100" value="30">
-        <span class="slider-value" id="toleranceValue">30%</span>
+        <label for="toleranceSlider">Default Color Tolerance:</label>
+        <div style="display: flex; align-items: center;">
+          <input type="range" id="toleranceSlider" min="0" max="100" value="30" style="flex-grow: 1;">
+          <span class="slider-value" id="toleranceValue">30%</span>
+        </div>
       </div>
       
       <div class="button-row">
         <button id="resetBtn">Reset Image</button>
         <button id="downloadBtn">Download Result</button>
-      </div>
-      
-      <div id="instructions">
-        <p><strong>How to use:</strong></p>
-        <ol>
-          <li>Upload an image using the area above</li>
-          <li>Click on the color in the image you want to remove</li>
-          <li>Adjust the tolerance slider to fine-tune how much of the similar colors get removed</li>
-          <li>Download your edited image when ready</li>
-        </ol>
-        <p class="preview-info">Note: The checkered background indicates transparent areas of the image.</p>
       </div>
     </div>
   </div>
@@ -197,39 +272,49 @@
     const toleranceValue = document.getElementById('toleranceValue');
     const resetBtn = document.getElementById('resetBtn');
     const downloadBtn = document.getElementById('downloadBtn');
+    const exampleBtn = document.getElementById('exampleBtn');
+    const clearAllBtn = document.getElementById('clearAllBtn');
     const controls = document.getElementById('controls');
-    const colorPreview = document.getElementById('color-preview');
-    const colorValue = document.getElementById('color-value');
+    const colorsContainer = document.getElementById('colorsContainer');
+    const noColorsMessage = document.getElementById('noColorsMessage');
     
     let ctx = imageCanvas.getContext('2d');
     let originalImage = null;
-    let selectedColor = null;
+    let selectedColors = [];
+    let colorCounter = 0;
     
     // Event Listeners
     dropArea.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', handleFileUpload);
     toleranceSlider.addEventListener('input', updateToleranceDisplay);
-    toleranceSlider.addEventListener('change', applyColorRemoval);
+    toleranceSlider.addEventListener('change', applyAllColorRemovals);
     resetBtn.addEventListener('click', resetImage);
     downloadBtn.addEventListener('click', downloadImage);
+    exampleBtn.addEventListener('click', loadExampleImage);
     imageCanvas.addEventListener('click', handleCanvasClick);
+    clearAllBtn.addEventListener('click', clearAllColors);
     
-    // Setup drag and drop
-    dropArea.addEventListener('dragover', (e) => {
+    // Setup drag and drop for entire document
+    document.addEventListener('dragover', (e) => {
       e.preventDefault();
-      dropArea.style.borderColor = '#4299e1';
+      dropArea.classList.add('drag-active');
     });
     
-    dropArea.addEventListener('dragleave', () => {
-      dropArea.style.borderColor = '#cbd5e0';
+    document.addEventListener('dragleave', (e) => {
+      // Only remove the class if we're leaving the document
+      if (e.relatedTarget === null || e.relatedTarget.nodeName === 'HTML') {
+        dropArea.classList.remove('drag-active');
+      }
     });
     
-    dropArea.addEventListener('drop', (e) => {
+    document.addEventListener('drop', (e) => {
       e.preventDefault();
-      dropArea.style.borderColor = '#cbd5e0';
+      dropArea.classList.remove('drag-active');
       if (e.dataTransfer.files.length) {
-        fileInput.files = e.dataTransfer.files;
-        handleFileUpload();
+        if (e.dataTransfer.files[0].type === 'image/jpeg' || e.dataTransfer.files[0].type === 'image/png') {
+          fileInput.files = e.dataTransfer.files;
+          handleFileUpload();
+        }
       }
     });
     
@@ -245,8 +330,14 @@
       }
     }
     
+    function loadExampleImage() {
+      const exampleImagePath = "./example.jpg";
+      loadImage(exampleImagePath);
+    }
+    
     function loadImage(src) {
       originalImage = new Image();
+      originalImage.crossOrigin = "Anonymous"; // Handle cross-origin images
       originalImage.onload = function() {
         // Set canvas dimensions based on image size, keeping aspect ratio
         const maxWidth = 800;
@@ -275,9 +366,12 @@
         controls.style.display = 'flex';
         
         // Reset color selection
-        selectedColor = null;
-        colorPreview.style.backgroundColor = 'transparent';
-        colorValue.textContent = 'None selected';
+        clearAllColors();
+      };
+      originalImage.onerror = function() {
+        console.error("Error loading image");
+        // Show an error message to the user
+        alert("Error loading image. Please try another image.");
       };
       originalImage.src = src;
     }
@@ -286,59 +380,152 @@
       if (!originalImage) return;
       
       const rect = imageCanvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const x = Math.floor((e.clientX - rect.left) * (imageCanvas.width / rect.width));
+      const y = Math.floor((e.clientY - rect.top) * (imageCanvas.height / rect.height));
       
       // Get pixel data at click position
       const pixelData = ctx.getImageData(x, y, 1, 1).data;
-      selectedColor = {
+      const color = {
+        id: colorCounter++,
         r: pixelData[0],
         g: pixelData[1],
-        b: pixelData[2]
+        b: pixelData[2],
+        tolerance: parseInt(toleranceSlider.value)
       };
       
-      // Update color preview
-      colorPreview.style.backgroundColor = `rgb(${selectedColor.r}, ${selectedColor.g}, ${selectedColor.b})`;
-      colorValue.textContent = `RGB(${selectedColor.r}, ${selectedColor.g}, ${selectedColor.b})`;
+      addColorToList(color);
+      applyAllColorRemovals();
+    }
+    
+    function addColorToList(color) {
+      selectedColors.push(color);
+      updateColorsDisplay();
+    }
+    
+    function updateColorsDisplay() {
+      // Hide the "no colors" message if we have colors
+      if (selectedColors.length > 0) {
+        noColorsMessage.style.display = 'none';
+      } else {
+        noColorsMessage.style.display = 'block';
+      }
       
-      // Apply color removal
-      applyColorRemoval();
+      // Clear existing color items
+      const existingItems = document.querySelectorAll('.color-item');
+      existingItems.forEach(item => item.remove());
+      
+      // Add each color to the container
+      selectedColors.forEach(color => {
+        const colorItem = document.createElement('div');
+        colorItem.className = 'color-item';
+        colorItem.dataset.colorId = color.id;
+        
+        const colorPreview = document.createElement('div');
+        colorPreview.className = 'color-preview';
+        colorPreview.style.backgroundColor = `rgb(${color.r}, ${color.g}, ${color.b})`;
+        
+        const colorInfo = document.createElement('div');
+        colorInfo.className = 'color-info';
+        colorInfo.appendChild(colorPreview);
+        colorInfo.appendChild(document.createTextNode(`RGB(${color.r}, ${color.g}, ${color.b})`));
+        
+        // Create the tolerance slider
+        const colorTolerance = document.createElement('div');
+        colorTolerance.className = 'color-tolerance';
+        
+        const toleranceLabel = document.createElement('span');
+        toleranceLabel.className = 'color-tolerance-label';
+        toleranceLabel.textContent = 'Tolerance:';
+        colorTolerance.appendChild(toleranceLabel);
+        
+        const toleranceSlider = document.createElement('input');
+        toleranceSlider.type = 'range';
+        toleranceSlider.className = 'color-slider';
+        toleranceSlider.min = 0;
+        toleranceSlider.max = 100;
+        toleranceSlider.value = color.tolerance;
+        toleranceSlider.addEventListener('input', (e) => {
+          color.tolerance = parseInt(e.target.value);
+          toleranceValue.textContent = `${color.tolerance}%`;
+          applyAllColorRemovals();
+        });
+        colorTolerance.appendChild(toleranceSlider);
+        
+        const toleranceValue = document.createElement('span');
+        toleranceValue.className = 'color-tolerance-value';
+        toleranceValue.textContent = `${color.tolerance}%`;
+        colorTolerance.appendChild(toleranceValue);
+        
+        const colorActions = document.createElement('div');
+        colorActions.className = 'color-actions';
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-color-btn';
+        removeBtn.textContent = 'Remove';
+        removeBtn.addEventListener('click', () => {
+          removeColor(color.id);
+        });
+        
+        colorActions.appendChild(removeBtn);
+        
+        colorItem.appendChild(colorInfo);
+        colorItem.appendChild(colorTolerance);
+        colorItem.appendChild(colorActions);
+        
+        colorsContainer.appendChild(colorItem);
+      });
+    }
+    
+    function removeColor(colorId) {
+      selectedColors = selectedColors.filter(color => color.id !== colorId);
+      updateColorsDisplay();
+      applyAllColorRemovals();
+    }
+    
+    function clearAllColors() {
+      selectedColors = [];
+      updateColorsDisplay();
+      resetCanvas();
     }
     
     function updateToleranceDisplay() {
       toleranceValue.textContent = `${toleranceSlider.value}%`;
-      if (selectedColor) {
-        applyColorRemoval();
-      }
     }
     
-    function applyColorRemoval() {
-      if (!selectedColor || !originalImage) return;
+    function applyAllColorRemovals() {
+      if (!originalImage) return;
       
       // Reset canvas first
       resetCanvas();
       
+      if (selectedColors.length === 0) return;
+      
       // Get image data
       const imageData = ctx.getImageData(0, 0, imageCanvas.width, imageCanvas.height);
       const data = imageData.data;
-      const tolerance = parseInt(toleranceSlider.value) * 2.55; // Convert percentage to 0-255 range
       
-      // Process each pixel
+      // Process each pixel for each selected color
       for (let i = 0; i < data.length; i += 4) {
         const r = data[i];
         const g = data[i+1];
         const b = data[i+2];
         
-        // Calculate color distance (simple Euclidean distance in RGB space)
-        const distance = Math.sqrt(
-          Math.pow(r - selectedColor.r, 2) +
-          Math.pow(g - selectedColor.g, 2) +
-          Math.pow(b - selectedColor.b, 2)
-        );
-        
-        // If color is within tolerance, make it transparent
-        if (distance <= tolerance) {
-          data[i+3] = 0; // Set alpha to 0 (transparent)
+        // Check against each selected color
+        for (const color of selectedColors) {
+          const tolerance = color.tolerance * 2.55; // Convert percentage to 0-255 range
+          
+          // Calculate color distance (simple Euclidean distance in RGB space)
+          const distance = Math.sqrt(
+            Math.pow(r - color.r, 2) +
+            Math.pow(g - color.g, 2) +
+            Math.pow(b - color.b, 2)
+          );
+          
+          // If color is within tolerance, make it transparent and break the loop
+          if (distance <= tolerance) {
+            data[i+3] = 0; // Set alpha to 0 (transparent)
+            break; // No need to check other colors
+          }
         }
       }
       
@@ -357,11 +544,7 @@
       if (!originalImage) return;
       
       resetCanvas();
-      
-      // Reset color selection
-      selectedColor = null;
-      colorPreview.style.backgroundColor = 'transparent';
-      colorValue.textContent = 'None selected';
+      clearAllColors();
     }
     
     function downloadImage() {
