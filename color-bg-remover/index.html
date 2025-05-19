@@ -348,21 +348,9 @@
       originalImage = new Image();
       originalImage.crossOrigin = "Anonymous"; // Handle cross-origin images
       originalImage.onload = function() {
-        // Set canvas dimensions based on image size, keeping aspect ratio
-        const maxWidth = 800;
-        const maxHeight = 600;
-        let width = originalImage.width;
-        let height = originalImage.height;
-
-        if (width > maxWidth) {
-          height = (maxWidth / width) * height;
-          width = maxWidth;
-        }
-
-        if (height > maxHeight) {
-          width = (maxHeight / height) * width;
-          height = maxHeight;
-        }
+        // Use original image dimensions without resizing
+        const width = originalImage.width;
+        const height = originalImage.height;
 
         imageCanvas.width = width;
         imageCanvas.height = height;
