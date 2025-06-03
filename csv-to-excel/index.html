@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV to Excel Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        h1 {
+            color: #2d3748;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #718096;
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+        }
+
+        .drop-zone {
+            border: 3px dashed #cbd5e0;
+            border-radius: 15px;
+            padding: 60px 20px;
+            background: linear-gradient(45deg, #f7fafc, #edf2f7);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .drop-zone::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+            transform: rotate(45deg);
+            transition: all 0.6s ease;
+            opacity: 0;
+        }
+
+        .drop-zone:hover::before {
+            animation: shimmer 2s infinite;
+            opacity: 1;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .drop-zone:hover {
+            border-color: #667eea;
+            background: linear-gradient(45deg, #edf2f7, #e2e8f0);
+            transform: scale(1.02);
+        }
+
+        .drop-zone.dragover {
+            border-color: #48bb78;
+            background: linear-gradient(45deg, #f0fff4, #c6f6d5);
+            transform: scale(1.05);
+        }
+
+        .drop-icon {
+            font-size: 4rem;
+            color: #a0aec0;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone:hover .drop-icon {
+            color: #667eea;
+            transform: translateY(-5px);
+        }
+
+        .drop-text {
+            font-size: 1.3rem;
+            color: #4a5568;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .drop-subtext {
+            color: #718096;
+            font-size: 1rem;
+        }
+
+        .processing {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(45deg, #e6fffa, #b2f5ea);
+            border-radius: 10px;
+            border-left: 4px solid #38b2ac;
+        }
+
+        .processing.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e2e8f0;
+            border-radius: 50%;
+            border-top-color: #38b2ac;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .success {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(45deg, #f0fff4, #c6f6d5);
+            border-radius: 10px;
+            border-left: 4px solid #48bb78;
+            color: #2d3748;
+        }
+
+        .success.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .browse-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .browse-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .features {
+            margin-top: 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+        }
+
+        .feature {
+            padding: 20px;
+            background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .feature:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .feature-text {
+            font-size: 0.9rem;
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CSV to Excel Converter</h1>
+        <p class="subtitle">Convert your CSV files to Excel format instantly</p>
+
+        <div class="drop-zone" id="dropZone">
+            <div class="drop-icon">📁</div>
+            <div class="drop-text">Drop CSV files here</div>
+            <div class="drop-subtext">or click to browse</div>
+            <button class="browse-btn" onclick="document.getElementById('fileInput').click()">
+                Choose Files
+            </button>
+        </div>
+
+        <input type="file" id="fileInput" class="file-input" multiple accept=".csv" />
+
+        <div class="processing" id="processing">
+            <div class="spinner"></div>
+            <span>Converting files...</span>
+        </div>
+
+        <div class="success" id="success">
+            <strong>✅ Conversion completed!</strong><br>
+            Your Excel file has been downloaded.
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">⚡</div>
+                <div class="feature-text">Instant Conversion</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📊</div>
+                <div class="feature-text">Multiple Sheets</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🔒</div>
+                <div class="feature-text">Client-Side Processing</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const processing = document.getElementById('processing');
+        const success = document.getElementById('success');
+
+        // Drag and drop handlers
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        async function handleFiles(files) {
+            if (files.length === 0) return;
+
+            // Filter for CSV files only
+            const csvFiles = Array.from(files).filter(file =>
+                file.name.toLowerCase().endsWith('.csv') || file.type === 'text/csv'
+            );
+
+            if (csvFiles.length === 0) {
+                alert('Please select CSV files only.');
+                return;
+            }
+
+            showProcessing();
+
+            try {
+                const workbook = XLSX.utils.book_new();
+
+                for (let i = 0; i < csvFiles.length; i++) {
+                    const file = csvFiles[i];
+                    const csvData = await readFile(file);
+
+                    // Parse CSV with Papa Parse for better handling
+                    const parseResult = Papa.parse(csvData, {
+                        header: false,
+                        skipEmptyLines: true,
+                        dynamicTyping: true,
+                        delimitersToGuess: [',', '\t', '|', ';']
+                    });
+
+                    // Create worksheet from parsed data
+                    const worksheet = XLSX.utils.aoa_to_sheet(parseResult.data);
+
+                    // Generate sheet name from filename (remove extension and clean up)
+                    let sheetName = file.name.replace(/\.csv$/i, '');
+                    sheetName = sheetName.replace(/[\\\/\[\]:*?]/g, '_'); // Remove invalid characters
+                    sheetName = sheetName.substring(0, 31); // Excel sheet name limit
+
+                    // Ensure unique sheet names
+                    let finalSheetName = sheetName;
+                    let counter = 1;
+                    while (workbook.SheetNames.includes(finalSheetName)) {
+                        finalSheetName = `${sheetName}_${counter}`;
+                        counter++;
+                    }
+
+                    XLSX.utils.book_append_sheet(workbook, worksheet, finalSheetName);
+                }
+
+                // Generate filename
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+                const filename = csvFiles.length === 1
+                    ? csvFiles[0].name.replace(/\.csv$/i, '.xlsx')
+                    : `converted_csvs_${timestamp}.xlsx`;
+
+                // Generate the Excel file as binary data
+                const excelBuffer = XLSX.write(workbook, {
+                    bookType: 'xlsx',
+                    type: 'array'
+                });
+
+                // Create blob and download
+                const blob = new Blob([excelBuffer], {
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                });
+
+                // Use FileSaver.js for reliable download
+                saveAs(blob, filename);
+
+                hideProcessing();
+                showSuccess();
+
+            } catch (error) {
+                console.error('Error converting files:', error);
+                alert('Error converting files. Please check that your CSV files are properly formatted.');
+                hideProcessing();
+            }
+
+            // Reset file input
+            fileInput.value = '';
+        }
+
+        function readFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsText(file);
+            });
+        }
+
+        function showProcessing() {
+            processing.classList.add('show');
+            success.classList.remove('show');
+        }
+
+        function hideProcessing() {
+            processing.classList.remove('show');
+        }
+
+        function showSuccess() {
+            success.classList.add('show');
+            setTimeout(() => {
+                success.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
