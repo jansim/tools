@@ -266,73 +266,9 @@
       return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
     }
 
-    function generateExampleIllustrationDataUrl() {
-      // Clean, vibrant vector artwork featuring a cat sticker on a solid background
-      // Contains both background cyan and foreground blue/cyan eyes to test contiguous mode!
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
-        <defs>
-          <radialGradient id="bgGrad" cx="50%" cy="50%" r="70%">
-            <stop offset="0%" stop-color="#38bdf8"/>
-            <stop offset="100%" stop-color="#0284c7"/>
-          </radialGradient>
-          <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-            <feDropShadow dx="0" dy="16" stdDeviation="12" flood-color="#082f49" flood-opacity="0.35"/>
-          </filter>
-        </defs>
-
-        <!-- Solid/Vibrant Background to remove -->
-        <rect width="640" height="480" fill="url(#bgGrad)"/>
-
-        <!-- Isolated Floating Island / Sticker with Shadow -->
-        <g filter="url(#shadow)">
-          <!-- Cloud / Ground Base -->
-          <ellipse cx="320" cy="380" rx="190" ry="40" fill="#f8fafc"/>
-          <ellipse cx="230" cy="370" rx="90" ry="30" fill="#f1f5f9"/>
-          <ellipse cx="410" cy="370" rx="90" ry="30" fill="#f1f5f9"/>
-
-          <!-- Cute Kitten Body -->
-          <ellipse cx="320" cy="300" rx="110" ry="90" fill="#fb923c"/>
-
-          <!-- White Chest Patch -->
-          <ellipse cx="320" cy="320" rx="65" ry="55" fill="#fff7ed"/>
-
-          <!-- Cat Head -->
-          <ellipse cx="320" cy="210" rx="100" ry="85" fill="#fb923c"/>
-
-          <!-- Ears with Pink Insides -->
-          <polygon points="240,160 270,75 300,140" fill="#ea580c"/>
-          <polygon points="250,150 270,95 290,140" fill="#fda4af"/>
-          <polygon points="400,160 370,75 340,140" fill="#ea580c"/>
-          <polygon points="390,150 370,95 350,140" fill="#fda4af"/>
-
-          <!-- Cheeks & Muzzle -->
-          <circle cx="300" cy="235" r="22" fill="#fff7ed"/>
-          <circle cx="340" cy="235" r="22" fill="#fff7ed"/>
-          <polygon points="320,225 312,217 328,217" fill="#f43f5e"/>
-
-          <!-- Whiskers -->
-          <line x1="260" y1="230" x2="210" y2="225" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
-          <line x1="260" y1="240" x2="210" y2="245" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
-          <line x1="380" y1="230" x2="430" y2="225" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
-          <line x1="380" y1="240" x2="430" y2="245" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
-
-          <!-- Eyes (Crucial: Cyan highlights match the background to test Contiguous vs Global!) -->
-          <ellipse cx="280" cy="190" rx="18" ry="24" fill="#0f172a"/>
-          <ellipse cx="360" cy="190" rx="18" ry="24" fill="#0f172a"/>
-          <!-- Inner pupil iris colored sky blue (#38bdf8) -->
-          <circle cx="280" cy="190" r="10" fill="#38bdf8"/>
-          <circle cx="360" cy="190" r="10" fill="#38bdf8"/>
-          <!-- Catchlights -->
-          <circle cx="276" cy="184" r="5" fill="#ffffff"/>
-          <circle cx="356" cy="184" r="5" fill="#ffffff"/>
-
-          <!-- Little Yarn Ball on the side -->
-          <circle cx="170" cy="380" r="28" fill="#ec4899"/>
-          <path d="M 155 365 Q 170 380 185 395 M 155 390 Q 170 375 185 365" stroke="#f472b6" stroke-width="3" stroke-linecap="round"/>
-          <path d="M 198 385 Q 230 405 260 380" stroke="#ec4899" stroke-width="3" fill="none" stroke-linecap="round"/>
-        </g>
-      </svg>`;
-      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    function loadExample() {
+      state.selectedColors = [];
+      loadSourceImage('example.jpg');
     }
 
     function loadSourceImage(sourceUrl) {
@@ -745,8 +681,7 @@
     });
 
     loadExampleBtn.addEventListener('click', () => {
-      state.selectedColors = [];
-      loadSourceImage(generateExampleIllustrationDataUrl());
+      loadExample();
     });
 
     // Drag and Drop
@@ -812,7 +747,7 @@
 
     // Initial load on page ready
     window.onload = function () {
-      loadSourceImage(generateExampleIllustrationDataUrl());
+      loadExample();
     };
   </script>
 </body>
