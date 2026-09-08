@@ -4,559 +4,816 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Color Background Remover</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 20px;
-      background-color: #f5f7fa;
+      font-family: 'Inter', sans-serif;
     }
-    h1 {
-      color: #2d3748;
-      text-align: center;
-      margin-bottom: 30px;
-    }
-    .container {
-      background-color: white;
-      border-radius: 8px;
-      padding: 20px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-    .upload-section {
-      text-align: center;
-      padding: 30px;
-      border: 2px dashed #cbd5e0;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      cursor: pointer;
-      transition: border-color 0.3s, background-color 0.3s;
-    }
-    .upload-section:hover {
-      border-color: #4299e1;
-    }
-    .upload-section.drag-active {
-      border-color: #4299e1;
-      background-color: rgba(66, 153, 225, 0.1);
-    }
-    .upload-section p {
-      color: #718096;
-      margin: 10px 0 0;
-    }
-    #fileInput {
-      display: none;
-    }
-    .controls {
-      margin-top: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-    .slider-container {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-    .slider-container label {
-      font-weight: bold;
-      color: #4a5568;
-    }
-    .slider-container .slider-value {
-      font-size: 0.9em;
-      color: #718096;
-    }
-    .canvas-container {
-      position: relative;
-      margin-top: 20px;
-      text-align: center;
-      min-height: 300px;
-      display: flex;
-      justify-content: center;
-    }
-    canvas {
-      max-width: 100%;
-      border: 1px solid #e2e8f0;
-      cursor: crosshair;
-      background-image:
-        linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
-        linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
-        linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+    /* Checkerboard pattern for transparency visualization */
+    .bg-checkerboard {
+      background-color: #1e2430;
+      background-image: 
+        linear-gradient(45deg, #283040 25%, transparent 25%), 
+        linear-gradient(-45deg, #283040 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #283040 75%), 
+        linear-gradient(-45deg, transparent 75%, #283040 75%);
       background-size: 20px 20px;
       background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
     }
-    button {
-      background-color: #4299e1;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: 500;
-      transition: background-color 0.3s;
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
     }
-    button:hover {
-      background-color: #3182ce;
-    }
-    button:disabled {
-      background-color: #cbd5e0;
-      cursor: not-allowed;
-    }
-    .example-container {
-      text-align: center;
-    }
-    .example-button {
-      background-color: #38a169;
-      margin-top: 10px;
-    }
-    .example-button:hover {
-      background-color: #2f855a;
-    }
-    .button-row {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      margin-top: 15px;
-    }
-    .colors-container {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-height: 300px;
-      overflow-y: auto;
-      padding: 10px;
-      border: 1px solid #e2e8f0;
-      border-radius: 5px;
-    }
-    .color-item {
-      display: flex;
-      align-items: center;
-      padding: 8px;
-      border-radius: 4px;
-      background-color: #f7fafc;
-    }
-    .color-preview {
-      width: 25px;
-      height: 25px;
-      border: 1px solid #cbd5e0;
-      border-radius: 50%;
-      display: inline-block;
-      vertical-align: middle;
-      margin-right: 10px;
-      flex-shrink: 0;
-    }
-    .color-info {
-      display: flex;
-      align-items: center;
-      font-size: 0.9em;
-      width: 110px;
-      flex-shrink: 0;
-    }
-    .color-tolerance {
-      display: flex;
-      align-items: center;
-      flex-grow: 1;
-      margin: 0 10px;
-    }
-    .color-tolerance-label {
-      margin-right: 8px;
-      white-space: nowrap;
-      font-size: 0.9em;
-    }
-    .color-tolerance-value {
-      width: 30px;
-      text-align: right;
-      font-size: 0.9em;
-      margin-left: 5px;
-    }
-    .color-slider {
-      flex-grow: 1;
-      margin: 0 5px;
-    }
-    .no-color-selected {
-      font-weight: bold;
-      text-align: center;
-      padding: 10px;
-      color: #718096;
-    }
-    .color-actions {
-      display: flex;
-      gap: 5px;
-      flex-shrink: 0;
-    }
-    .remove-color-btn {
-      background-color: #e53e3e;
-      color: white;
-      padding: 4px 8px;
-      font-size: 12px;
-    }
-    .remove-color-btn:hover {
-      background-color: #c53030;
-    }
-    .add-color-instructions {
-      text-align: center;
-      padding: 10px;
-      font-style: italic;
-      color: #718096;
-      margin-bottom: 10px;
-    }
-    .colors-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .colors-header h3 {
-      margin: 0;
-    }
-    .clear-all-btn {
-      background-color: #718096;
-      font-size: 14px;
-      padding: 5px 10px;
-    }
-    .clear-all-btn:hover {
-      background-color: #4a5568;
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 9999px;
     }
   </style>
 </head>
-<body>
-  <h1>Color Background Remover</h1>
-  <div class="container">
-    <div class="upload-section" id="dropArea">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4299e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-        <polyline points="17 8 12 3 7 8"></polyline>
-        <line x1="12" y1="3" x2="12" y2="15"></line>
-      </svg>
-      <p>Drag & drop an image or click to browse</p>
-      <input type="file" id="fileInput" accept="image/jpeg, image/png">
-    </div>
-
-    <div class="example-container">
-      <button id="exampleBtn" class="example-button">Use Example Image</button>
-    </div>
-
-    <div class="canvas-container">
-      <canvas id="imageCanvas"></canvas>
-    </div>
-
-    <div class="controls" id="controls" style="display: none;">
-      <div class="add-color-instructions">Click on the image to select colors to remove</div>
-
-      <div class="colors-header">
-        <h3>Selected Colors</h3>
-        <button id="clearAllBtn" class="clear-all-btn">Clear All</button>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+  <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md px-6 py-3 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-end gap-2">
+      <!-- Quick Action Buttons in Header -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <button id="loadExampleBtn" class="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5 shadow-sm">
+          <svg class="w-3.5 h-3.5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          Load Example Image
+        </button>
+        <label class="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition cursor-pointer flex items-center gap-1.5 shadow-sm">
+          <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+          Upload Image
+          <input type="file" id="imageInput" accept="image/*" class="hidden">
+        </label>
+        <button id="downloadBtn" class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-sky-500 hover:bg-sky-400 text-slate-950 transition shadow-md shadow-sky-500/20 flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+          Export PNG
+        </button>
       </div>
+    </div>
+  </header>
 
-      <div class="colors-container" id="colorsContainer">
-        <div class="no-color-selected" id="noColorsMessage">
-          No colors selected yet 🎨
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    
+    <!-- Left: Canvas Interactive Viewport (8 Cols) -->
+    <div class="lg:col-span-8 flex flex-col gap-4">
+      
+      <!-- Canvas Container -->
+      <div class="relative bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col min-h-[500px]">
+        <!-- Top status bar inside canvas viewport -->
+        <div class="px-4 py-2.5 bg-slate-950/80 border-b border-slate-800 flex flex-wrap items-center justify-between text-xs text-slate-400 gap-2 select-none">
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="canvasDimLabel">Dimensions: 0 × 0 px</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <button id="toggleOriginalBtn" class="hover:text-white transition flex items-center gap-1 px-2 py-1 rounded bg-slate-800/80 border border-slate-700/60 active:bg-slate-700">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+              Hold for Original
+            </button>
+            <button id="resetZoomBtn" class="hover:text-white transition">Fit View</button>
+          </div>
+        </div>
+
+        <div id="canvasScrollArea" class="relative flex-1 bg-checkerboard overflow-auto flex items-center justify-center p-6 min-h-[440px] custom-scrollbar cursor-crosshair">
+          <canvas id="mainCanvas" class="max-w-full h-auto rounded-lg shadow-xl transition-all duration-75 block"></canvas>
+          
+          <!-- Magnifying loupe preview on hover -->
+          <div id="loupe" class="pointer-events-none fixed hidden z-50 w-24 h-24 rounded-full border-2 border-white shadow-2xl overflow-hidden bg-slate-900/90 backdrop-blur-sm -translate-x-1/2 -translate-y-1/2">
+            <canvas id="loupeCanvas" width="96" height="96" class="w-full h-full image-rendering-pixelated"></canvas>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="w-2.5 h-2.5 border border-sky-400 rounded-full"></div>
+            </div>
+            <div id="loupeHex" class="absolute bottom-1 inset-x-0 text-center font-mono text-[9px] bg-black/75 text-white py-0.5">#000000</div>
+          </div>
+        </div>
+
+        <!-- Real-Time Metrics & Pixel Transparency Info Bar -->
+        <div class="px-5 py-3 bg-slate-950/90 border-t border-slate-800 grid grid-cols-2 sm:grid-cols-3 gap-4 items-center">
+          <div>
+            <span class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold block">Transparency</span>
+            <div class="flex items-baseline gap-2 mt-0.5">
+              <span id="transparencyPercent" class="text-xl font-extrabold text-sky-400">0.0%</span>
+              <span class="text-xs text-slate-400">of image</span>
+            </div>
+          </div>
+          <div>
+            <span class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold block">Transparent Pixels</span>
+            <div class="mt-0.5">
+              <span id="transparencyPixelCount" class="text-sm font-semibold text-slate-200">0</span>
+              <span id="totalPixelCount" class="text-xs text-slate-500"> / 0 total</span>
+            </div>
+          </div>
+          <div class="col-span-2 sm:col-span-1">
+            <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+              <div id="transparencyBar" class="bg-gradient-to-r from-sky-500 to-indigo-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="slider-container">
-        <label for="toleranceSlider">Default Color Tolerance:</label>
-        <div style="display: flex; align-items: center;">
-          <input type="range" id="toleranceSlider" min="0" max="100" value="30" style="flex-grow: 1;">
-          <span class="slider-value" id="toleranceValue">30%</span>
+      <!-- Quick instructions bar -->
+      <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3.5 flex items-center gap-3 text-xs text-slate-400">
+        <span class="flex-shrink-0 w-5 h-5 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center text-xs font-bold">💡</span>
+        <span>Click on any pixel in the image to add that color / seed position. You can also drag &amp; drop an image or paste with <kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-mono text-[10px]">Ctrl+V</kbd>.</span>
+      </div>
+    </div>
+
+    <div class="lg:col-span-4 flex flex-col gap-5">
+      
+      <!-- Tool settings Card -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-6">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+          <h2 class="font-semibold text-sm tracking-wide text-slate-200">Settings &amp; Parameters</h2>
+          <button id="resetSettingsBtn" class="text-xs text-slate-400 hover:text-sky-400 transition">Reset default</button>
+        </div>
+
+        <!-- 1. Contiguous Point Option -->
+        <div class="space-y-2">
+          <div class="flex items-start justify-between gap-3">
+            <label for="contiguousToggle" class="cursor-pointer select-none">
+              <span class="text-sm font-medium text-slate-200 flex items-center gap-1.5">
+                Contiguous Area Only
+                <span class="text-[10px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Seed-based</span>
+              </span>
+              <p class="text-xs text-slate-400 mt-0.5">
+                Only remove color physically connected to the clicked point(s). Keeps isolated interior elements intact.
+              </p>
+            </label>
+            <input type="checkbox" id="contiguousToggle" class="mt-1 w-4 h-4 rounded text-sky-500 focus:ring-sky-400 focus:ring-offset-slate-900 bg-slate-800 border-slate-700 cursor-pointer" checked>
+          </div>
+        </div>
+
+        <!-- 2. Tolerance / Threshold Slider -->
+        <div class="space-y-2 pt-2 border-t border-slate-800/80">
+          <div class="flex justify-between items-center text-xs">
+            <label for="thresholdSlider" class="font-medium text-slate-200">Color Threshold (Tolerance)</label>
+            <span id="thresholdValueText" class="font-bold text-sky-400 px-2 py-0.5 rounded bg-slate-800 font-mono">32</span>
+          </div>
+          <input type="range" id="thresholdSlider" min="1" max="150" value="32" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500">
+          <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+            <span>Precise (1)</span>
+            <span>Balanced (32)</span>
+            <span>Broad (150)</span>
+          </div>
+        </div>
+
+        <!-- 3. Soft Edge Fading Checkbox & Feather Window Slider -->
+        <div class="space-y-3 pt-2 border-t border-slate-800/80">
+          <div class="flex items-start justify-between gap-3">
+            <label for="fadeToggle" class="cursor-pointer select-none">
+              <span class="text-sm font-medium text-slate-200">Soft Edge Fading</span>
+              <p class="text-xs text-slate-400 mt-0.5">
+                Gradually anti-alias transparency at the threshold edge instead of a hard pixelated cut.
+              </p>
+            </label>
+            <input type="checkbox" id="fadeToggle" class="mt-1 w-4 h-4 rounded text-sky-500 focus:ring-sky-400 focus:ring-offset-slate-900 bg-slate-800 border-slate-700 cursor-pointer" checked>
+          </div>
+
+          <div id="fadeControls" class="space-y-2 pl-3 border-l-2 border-sky-500/40">
+            <div class="flex justify-between items-center text-xs">
+              <label for="fadeRangeSlider" class="text-slate-300">Fade Softness Window</label>
+              <span id="fadeRangeValueText" class="font-bold text-indigo-400 px-2 py-0.5 rounded bg-slate-800 font-mono">18</span>
+            </div>
+            <input type="range" id="fadeRangeSlider" min="2" max="60" value="18" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-400">
+          </div>
+        </div>
+
+        <!-- Color Space Matching Mode -->
+        <div class="space-y-2 pt-2 border-t border-slate-800/80">
+          <label class="text-xs font-medium text-slate-300 block">Distance Algorithm</label>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-800/70 border border-slate-700/60 cursor-pointer">
+              <input type="radio" name="distanceFormula" value="euclidean" checked class="text-sky-500">
+              <span>RGB Vector</span>
+            </label>
+            <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-800/70 border border-slate-700/60 cursor-pointer">
+              <input type="radio" name="distanceFormula" value="perceptual" class="text-sky-500">
+              <span>Perceptual</span>
+            </label>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <h2 class="font-semibold text-sm tracking-wide text-slate-200">Selected Colors &amp; Seeds</h2>
+            <span id="colorCountBadge" class="text-xs px-2 py-0.2 rounded-full bg-slate-800 text-slate-300 font-mono">0</span>
+          </div>
+          <button id="clearAllColorsBtn" class="text-xs text-rose-400 hover:text-rose-300 transition font-medium">Clear All</button>
+        </div>
+
+        <div id="colorsList" class="space-y-2 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
+          <div class="text-center py-6 text-slate-500 text-xs">
+            No colors chosen yet.<br>Click anywhere on the image canvas to pick a color!
+          </div>
         </div>
       </div>
 
-      <div class="button-row">
-        <button id="resetBtn">Reset Image</button>
-        <button id="downloadBtn">Download Result</button>
-      </div>
     </div>
-  </div>
+  </main>
 
   <script>
-    const fileInput = document.getElementById('fileInput');
-    const dropArea = document.getElementById('dropArea');
-    const imageCanvas = document.getElementById('imageCanvas');
-    const toleranceSlider = document.getElementById('toleranceSlider');
-    const toleranceValue = document.getElementById('toleranceValue');
-    const resetBtn = document.getElementById('resetBtn');
+    // State management object
+    const state = {
+      image: null,
+      originalImageData: null,
+      selectedColors: [], // array of { id, r, g, b, x, y, hex, enabled }
+      threshold: 32,
+      fadeEnabled: true,
+      fadeWindow: 18,
+      contiguous: true,
+      distanceFormula: 'euclidean', // 'euclidean' | 'perceptual'
+      isShowingOriginal: false,
+      processing: false
+    };
+
+    // DOM Elements cache
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const canvasScrollArea = document.getElementById('canvasScrollArea');
+    const thresholdSlider = document.getElementById('thresholdSlider');
+    const thresholdValueText = document.getElementById('thresholdValueText');
+    const fadeToggle = document.getElementById('fadeToggle');
+    const fadeControls = document.getElementById('fadeControls');
+    const fadeRangeSlider = document.getElementById('fadeRangeSlider');
+    const fadeRangeValueText = document.getElementById('fadeRangeValueText');
+    const contiguousToggle = document.getElementById('contiguousToggle');
+    const colorsList = document.getElementById('colorsList');
+    const colorCountBadge = document.getElementById('colorCountBadge');
+    const clearAllColorsBtn = document.getElementById('clearAllColorsBtn');
+    const transparencyPercent = document.getElementById('transparencyPercent');
+    const transparencyPixelCount = document.getElementById('transparencyPixelCount');
+    const totalPixelCount = document.getElementById('totalPixelCount');
+    const transparencyBar = document.getElementById('transparencyBar');
+    const canvasDimLabel = document.getElementById('canvasDimLabel');
+    const imageInput = document.getElementById('imageInput');
+    const loadExampleBtn = document.getElementById('loadExampleBtn');
     const downloadBtn = document.getElementById('downloadBtn');
-    const exampleBtn = document.getElementById('exampleBtn');
-    const clearAllBtn = document.getElementById('clearAllBtn');
-    const controls = document.getElementById('controls');
-    const colorsContainer = document.getElementById('colorsContainer');
-    const noColorsMessage = document.getElementById('noColorsMessage');
+    const toggleOriginalBtn = document.getElementById('toggleOriginalBtn');
+    const resetSettingsBtn = document.getElementById('resetSettingsBtn');
+    const loupe = document.getElementById('loupe');
+    const loupeCanvas = document.getElementById('loupeCanvas');
+    const loupeCtx = loupeCanvas.getContext('2d');
+    const loupeHex = document.getElementById('loupeHex');
 
-    let ctx = imageCanvas.getContext('2d');
-    let originalImage = null;
-    let selectedColors = [];
-    let colorCounter = 0;
+    // Utility: RGB to Hex
+    function rgbToHex(r, g, b) {
+      return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+    }
 
-    // Event Listeners
-    dropArea.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', handleFileUpload);
-    toleranceSlider.addEventListener('input', updateToleranceDisplay);
-    toleranceSlider.addEventListener('change', applyAllColorRemovals);
-    resetBtn.addEventListener('click', resetImage);
-    downloadBtn.addEventListener('click', downloadImage);
-    exampleBtn.addEventListener('click', loadExampleImage);
-    imageCanvas.addEventListener('click', handleCanvasClick);
-    clearAllBtn.addEventListener('click', clearAllColors);
+    function generateExampleIllustrationDataUrl() {
+      // Clean, vibrant vector artwork featuring a cat sticker on a solid background
+      // Contains both background cyan and foreground blue/cyan eyes to test contiguous mode!
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
+        <defs>
+          <radialGradient id="bgGrad" cx="50%" cy="50%" r="70%">
+            <stop offset="0%" stop-color="#38bdf8"/>
+            <stop offset="100%" stop-color="#0284c7"/>
+          </radialGradient>
+          <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="16" stdDeviation="12" flood-color="#082f49" flood-opacity="0.35"/>
+          </filter>
+        </defs>
 
-    // Setup drag and drop for entire document
-    document.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropArea.classList.add('drag-active');
-    });
+        <!-- Solid/Vibrant Background to remove -->
+        <rect width="640" height="480" fill="url(#bgGrad)"/>
 
-    document.addEventListener('dragleave', (e) => {
-      // Only remove the class if we're leaving the document
-      if (e.relatedTarget === null || e.relatedTarget.nodeName === 'HTML') {
-        dropArea.classList.remove('drag-active');
+        <!-- Isolated Floating Island / Sticker with Shadow -->
+        <g filter="url(#shadow)">
+          <!-- Cloud / Ground Base -->
+          <ellipse cx="320" cy="380" rx="190" ry="40" fill="#f8fafc"/>
+          <ellipse cx="230" cy="370" rx="90" ry="30" fill="#f1f5f9"/>
+          <ellipse cx="410" cy="370" rx="90" ry="30" fill="#f1f5f9"/>
+
+          <!-- Cute Kitten Body -->
+          <ellipse cx="320" cy="300" rx="110" ry="90" fill="#fb923c"/>
+
+          <!-- White Chest Patch -->
+          <ellipse cx="320" cy="320" rx="65" ry="55" fill="#fff7ed"/>
+
+          <!-- Cat Head -->
+          <ellipse cx="320" cy="210" rx="100" ry="85" fill="#fb923c"/>
+
+          <!-- Ears with Pink Insides -->
+          <polygon points="240,160 270,75 300,140" fill="#ea580c"/>
+          <polygon points="250,150 270,95 290,140" fill="#fda4af"/>
+          <polygon points="400,160 370,75 340,140" fill="#ea580c"/>
+          <polygon points="390,150 370,95 350,140" fill="#fda4af"/>
+
+          <!-- Cheeks & Muzzle -->
+          <circle cx="300" cy="235" r="22" fill="#fff7ed"/>
+          <circle cx="340" cy="235" r="22" fill="#fff7ed"/>
+          <polygon points="320,225 312,217 328,217" fill="#f43f5e"/>
+
+          <!-- Whiskers -->
+          <line x1="260" y1="230" x2="210" y2="225" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
+          <line x1="260" y1="240" x2="210" y2="245" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
+          <line x1="380" y1="230" x2="430" y2="225" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
+          <line x1="380" y1="240" x2="430" y2="245" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
+
+          <!-- Eyes (Crucial: Cyan highlights match the background to test Contiguous vs Global!) -->
+          <ellipse cx="280" cy="190" rx="18" ry="24" fill="#0f172a"/>
+          <ellipse cx="360" cy="190" rx="18" ry="24" fill="#0f172a"/>
+          <!-- Inner pupil iris colored sky blue (#38bdf8) -->
+          <circle cx="280" cy="190" r="10" fill="#38bdf8"/>
+          <circle cx="360" cy="190" r="10" fill="#38bdf8"/>
+          <!-- Catchlights -->
+          <circle cx="276" cy="184" r="5" fill="#ffffff"/>
+          <circle cx="356" cy="184" r="5" fill="#ffffff"/>
+
+          <!-- Little Yarn Ball on the side -->
+          <circle cx="170" cy="380" r="28" fill="#ec4899"/>
+          <path d="M 155 365 Q 170 380 185 395 M 155 390 Q 170 375 185 365" stroke="#f472b6" stroke-width="3" stroke-linecap="round"/>
+          <path d="M 198 385 Q 230 405 260 380" stroke="#ec4899" stroke-width="3" fill="none" stroke-linecap="round"/>
+        </g>
+      </svg>`;
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    }
+
+    function loadSourceImage(sourceUrl) {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => {
+        state.image = img;
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        canvasDimLabel.textContent = `Dimensions: ${img.naturalWidth} × ${img.naturalHeight} px`;
+
+        // Render clean copy
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+
+        // Store pristine original image data
+        state.originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        // Automatically pre-populate one seed point for user convenience if empty
+        if (state.selectedColors.length === 0) {
+          const sampleX = 30;
+          const sampleY = 30;
+          const pIdx = (sampleY * canvas.width + sampleX) * 4;
+          const r = state.originalImageData.data[pIdx];
+          const g = state.originalImageData.data[pIdx + 1];
+          const b = state.originalImageData.data[pIdx + 2];
+          state.selectedColors.push({
+            id: Date.now(),
+            r, g, b,
+            x: sampleX,
+            y: sampleY,
+            hex: rgbToHex(r, g, b),
+            enabled: true
+          });
+        }
+
+        renderColorsList();
+        processImage();
+      };
+      img.src = sourceUrl;
+    }
+
+    function calculateColorDistance(r1, g1, b1, r2, g2, b2, mode = 'euclidean') {
+      const dr = r1 - r2;
+      const dg = g1 - g2;
+      const db = b1 - b2;
+
+      if (mode === 'perceptual') {
+        // Human eye sensitivity weighted formula (Redmean formula)
+        const rmean = (r1 + r2) / 2;
+        return Math.sqrt(
+          (2 + rmean / 256) * dr * dr +
+          4 * dg * dg +
+          (2 + (255 - rmean) / 256) * db * db
+        ) * 0.75;
       }
-    });
 
-    document.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropArea.classList.remove('drag-active');
-      if (e.dataTransfer.files.length) {
-        if (e.dataTransfer.files[0].type === 'image/jpeg' || e.dataTransfer.files[0].type === 'image/png') {
-          fileInput.files = e.dataTransfer.files;
-          handleFileUpload();
+      // Standard Euclidean distance
+      return Math.sqrt(dr * dr + dg * dg + db * db);
+    }
+
+    function processImage() {
+      if (!state.originalImageData || !state.image) return;
+
+      if (state.isShowingOriginal) {
+        ctx.putImageData(state.originalImageData, 0, 0);
+        return;
+      }
+
+      const w = canvas.width;
+      const h = canvas.height;
+      const totalPixels = w * h;
+
+      const src = state.originalImageData.data;
+      const output = ctx.createImageData(w, h);
+      const dst = output.data;
+
+      // Copy base unmodified data
+      dst.set(src);
+
+      const activeColors = state.selectedColors.filter(c => c.enabled);
+
+      if (activeColors.length === 0) {
+        ctx.putImageData(output, 0, 0);
+        updateTransparencyStats(0, totalPixels);
+        return;
+      }
+
+      const threshold = state.threshold;
+      const fadeBand = state.fadeEnabled ? state.fadeWindow : 0;
+      const maxDistance = threshold + fadeBand;
+      const formula = state.distanceFormula;
+
+      if (state.contiguous) {
+        // Use a 4-connected BFS queue to strictly isolate pixels physically connected to seed coordinates
+        const visited = new Uint8Array(totalPixels);
+        const queue = new Int32Array(totalPixels);
+
+        for (const seed of activeColors) {
+          // Verify seed coordinates inside image bounds
+          const sx = Math.max(0, Math.min(w - 1, seed.x));
+          const sy = Math.max(0, Math.min(h - 1, seed.y));
+          const startIdx = sy * w + sx;
+
+          let head = 0;
+          let tail = 0;
+
+          if (!visited[startIdx]) {
+            visited[startIdx] = 1;
+            queue[tail++] = startIdx;
+          }
+
+          while (head < tail) {
+            const current = queue[head++];
+            const cx = current % w;
+            const cy = (current / w) | 0;
+            const byteIdx = current * 4;
+
+            const r = src[byteIdx];
+            const g = src[byteIdx + 1];
+            const b = src[byteIdx + 2];
+            const origAlpha = src[byteIdx + 3];
+
+            if (origAlpha === 0) continue;
+
+            const dist = calculateColorDistance(r, g, b, seed.r, seed.g, seed.b, formula);
+
+            if (dist <= maxDistance) {
+              // Calculate alpha attenuation factor
+              let alphaFactor = 0; // completely transparent within threshold
+              if (dist > threshold && fadeBand > 0) {
+                // Soft edge interpolation
+                alphaFactor = (dist - threshold) / fadeBand;
+              }
+
+              const targetAlpha = Math.floor(origAlpha * alphaFactor);
+              if (targetAlpha < dst[byteIdx + 3]) {
+                dst[byteIdx + 3] = targetAlpha;
+              }
+
+              // Check and enqueue 4-directional neighbors
+              if (cx > 0) {
+                const n = current - 1;
+                if (!visited[n]) { visited[n] = 1; queue[tail++] = n; }
+              }
+              if (cx < w - 1) {
+                const n = current + 1;
+                if (!visited[n]) { visited[n] = 1; queue[tail++] = n; }
+              }
+              if (cy > 0) {
+                const n = current - w;
+                if (!visited[n]) { visited[n] = 1; queue[tail++] = n; }
+              }
+              if (cy < h - 1) {
+                const n = current + w;
+                if (!visited[n]) { visited[n] = 1; queue[tail++] = n; }
+              }
+            }
+          }
+        }
+
+      } else {
+        for (let i = 0; i < totalPixels; i++) {
+          const byteIdx = i * 4;
+          const origAlpha = src[byteIdx + 3];
+          if (origAlpha === 0) continue;
+
+          const r = src[byteIdx];
+          const g = src[byteIdx + 1];
+          const b = src[byteIdx + 2];
+
+          let minAlphaFactor = 1.0;
+
+          for (let c = 0; c < activeColors.length; c++) {
+            const seed = activeColors[c];
+            const dist = calculateColorDistance(r, g, b, seed.r, seed.g, seed.b, formula);
+
+            if (dist <= threshold) {
+              minAlphaFactor = 0;
+              break;
+            } else if (dist <= maxDistance && fadeBand > 0) {
+              const factor = (dist - threshold) / fadeBand;
+              if (factor < minAlphaFactor) {
+                minAlphaFactor = factor;
+              }
+            }
+          }
+
+          dst[byteIdx + 3] = Math.floor(origAlpha * minAlphaFactor);
         }
       }
-    });
 
-    // Functions
-    function handleFileUpload() {
-      const file = fileInput.files[0];
-      if (file && (file.type === 'image/jpeg' || file.type === 'image/png')) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          loadImage(e.target.result);
-        };
-        reader.readAsDataURL(file);
-      }
-    }
-
-    function loadExampleImage() {
-      const exampleImagePath = "./example.jpg";
-      loadImage(exampleImagePath);
-    }
-
-    function loadImage(src) {
-      // Hide example button when an image is loaded
-      exampleBtn.style.display = 'none';
-
-      originalImage = new Image();
-      originalImage.crossOrigin = "Anonymous"; // Handle cross-origin images
-      originalImage.onload = function() {
-        // Use original image dimensions without resizing
-        const width = originalImage.width;
-        const height = originalImage.height;
-
-        imageCanvas.width = width;
-        imageCanvas.height = height;
-
-        // Draw the original image
-        ctx.clearRect(0, 0, width, height);
-        ctx.drawImage(originalImage, 0, 0, width, height);
-
-        // Show controls
-        controls.style.display = 'flex';
-
-        // Reset color selection
-        clearAllColors();
-      };
-      originalImage.onerror = function() {
-        console.error("Error loading image");
-        // Show an error message to the user
-        alert("Error loading image. Please try another image.");
-      };
-      originalImage.src = src;
-    }
-
-    function handleCanvasClick(e) {
-      if (!originalImage) return;
-
-      const rect = imageCanvas.getBoundingClientRect();
-      const x = Math.floor((e.clientX - rect.left) * (imageCanvas.width / rect.width));
-      const y = Math.floor((e.clientY - rect.top) * (imageCanvas.height / rect.height));
-
-      // Get pixel data at click position
-      const pixelData = ctx.getImageData(x, y, 1, 1).data;
-      const color = {
-        id: colorCounter++,
-        r: pixelData[0],
-        g: pixelData[1],
-        b: pixelData[2],
-        tolerance: parseInt(toleranceSlider.value)
-      };
-
-      addColorToList(color);
-      applyAllColorRemovals();
-    }
-
-    function addColorToList(color) {
-      selectedColors.push(color);
-      updateColorsDisplay();
-    }
-
-    function updateColorsDisplay() {
-      // Hide the "no colors" message if we have colors
-      if (selectedColors.length > 0) {
-        noColorsMessage.style.display = 'none';
-      } else {
-        noColorsMessage.style.display = 'block';
+      let transparentCount = 0;
+      for (let i = 0; i < totalPixels; i++) {
+        // Any pixel with alpha reduced below 128 is treated as transparent for analytics
+        if (dst[i * 4 + 3] < 128) {
+          transparentCount++;
+        }
       }
 
-      // Clear existing color items
-      const existingItems = document.querySelectorAll('.color-item');
-      existingItems.forEach(item => item.remove());
+      ctx.putImageData(output, 0, 0);
+      updateTransparencyStats(transparentCount, totalPixels);
+    }
 
-      // Add each color to the container
-      selectedColors.forEach(color => {
-        const colorItem = document.createElement('div');
-        colorItem.className = 'color-item';
-        colorItem.dataset.colorId = color.id;
+    function updateTransparencyStats(transparentCount, totalPixels) {
+      const pct = totalPixels > 0 ? ((transparentCount / totalPixels) * 100) : 0;
+      const formattedPct = pct.toFixed(1) + '%';
 
-        const colorPreview = document.createElement('div');
-        colorPreview.className = 'color-preview';
-        colorPreview.style.backgroundColor = `rgb(${color.r}, ${color.g}, ${color.b})`;
+      transparencyPercent.textContent = formattedPct;
+      transparencyPixelCount.textContent = transparentCount.toLocaleString();
+      totalPixelCount.textContent = ` / ${totalPixels.toLocaleString()} total`;
+      transparencyBar.style.width = formattedPct;
+    }
 
-        const colorInfo = document.createElement('div');
-        colorInfo.className = 'color-info';
-        colorInfo.appendChild(colorPreview);
-        colorInfo.appendChild(document.createTextNode(`RGB(${color.r}, ${color.g}, ${color.b})`));
+    function renderColorsList() {
+      colorCountBadge.textContent = state.selectedColors.length;
 
-        // Create the tolerance slider
-        const colorTolerance = document.createElement('div');
-        colorTolerance.className = 'color-tolerance';
+      if (state.selectedColors.length === 0) {
+        colorsList.innerHTML = `
+          <div class="text-center py-6 text-slate-500 text-xs">
+            No colors chosen yet.<br>Click anywhere on the image canvas to pick a color!
+          </div>`;
+        return;
+      }
 
-        const toleranceLabel = document.createElement('span');
-        toleranceLabel.className = 'color-tolerance-label';
-        toleranceLabel.textContent = 'Tolerance:';
-        colorTolerance.appendChild(toleranceLabel);
+      colorsList.innerHTML = '';
+      state.selectedColors.forEach((col, index) => {
+        const item = document.createElement('div');
+        item.className = `flex items-center justify-between p-2.5 rounded-xl border transition ${
+          col.enabled ? 'bg-slate-800/80 border-slate-700/80' : 'bg-slate-900/40 border-slate-800/40 opacity-50'
+        }`;
 
-        const toleranceSlider = document.createElement('input');
-        toleranceSlider.type = 'range';
-        toleranceSlider.className = 'color-slider';
-        toleranceSlider.min = 0;
-        toleranceSlider.max = 100;
-        toleranceSlider.value = color.tolerance;
-        toleranceSlider.addEventListener('input', (e) => {
-          color.tolerance = parseInt(e.target.value);
-          toleranceValue.textContent = `${color.tolerance}%`;
-          applyAllColorRemovals();
-        });
-        colorTolerance.appendChild(toleranceSlider);
+        item.innerHTML = `
+          <div class="flex items-center gap-3">
+            <input type="checkbox" ${col.enabled ? 'checked' : ''} class="color-toggle-btn rounded text-sky-500 bg-slate-900 border-slate-700 cursor-pointer">
+            <div class="w-6 h-6 rounded-lg border border-white/20 shadow-inner flex-shrink-0" style="background-color: rgb(${col.r},${col.g},${col.b})"></div>
+            <div class="leading-tight">
+              <span class="text-xs font-mono font-bold text-slate-200 block">${col.hex}</span>
+              <span class="text-[10px] text-slate-400 font-mono">Seed: (${col.x}, ${col.y})</span>
+            </div>
+          </div>
+          <button class="remove-color-btn text-slate-500 hover:text-rose-400 transition p-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        `;
 
-        const toleranceValue = document.createElement('span');
-        toleranceValue.className = 'color-tolerance-value';
-        toleranceValue.textContent = `${color.tolerance}%`;
-        colorTolerance.appendChild(toleranceValue);
-
-        const colorActions = document.createElement('div');
-        colorActions.className = 'color-actions';
-
-        const removeBtn = document.createElement('button');
-        removeBtn.className = 'remove-color-btn';
-        removeBtn.textContent = 'Remove';
-        removeBtn.addEventListener('click', () => {
-          removeColor(color.id);
+        // Toggle enabled state
+        item.querySelector('.color-toggle-btn').addEventListener('change', (e) => {
+          col.enabled = e.target.checked;
+          renderColorsList();
+          processImage();
         });
 
-        colorActions.appendChild(removeBtn);
+        // Delete item
+        item.querySelector('.remove-color-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          state.selectedColors.splice(index, 1);
+          renderColorsList();
+          processImage();
+        });
 
-        colorItem.appendChild(colorInfo);
-        colorItem.appendChild(colorTolerance);
-        colorItem.appendChild(colorActions);
-
-        colorsContainer.appendChild(colorItem);
+        colorsList.appendChild(item);
       });
     }
 
-    function removeColor(colorId) {
-      selectedColors = selectedColors.filter(color => color.id !== colorId);
-      updateColorsDisplay();
-      applyAllColorRemovals();
-    }
+    canvas.addEventListener('click', (e) => {
+      if (!state.originalImageData) return;
 
-    function clearAllColors() {
-      selectedColors = [];
-      updateColorsDisplay();
-      resetCanvas();
-    }
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
 
-    function updateToleranceDisplay() {
-      toleranceValue.textContent = `${toleranceSlider.value}%`;
-    }
+      const x = Math.floor((e.clientX - rect.left) * scaleX);
+      const y = Math.floor((e.clientY - rect.top) * scaleY);
 
-    function applyAllColorRemovals() {
-      if (!originalImage) return;
+      if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) return;
 
-      // Reset canvas first
-      resetCanvas();
+      const pixelIdx = (y * canvas.width + x) * 4;
+      const r = state.originalImageData.data[pixelIdx];
+      const g = state.originalImageData.data[pixelIdx + 1];
+      const b = state.originalImageData.data[pixelIdx + 2];
+      const hex = rgbToHex(r, g, b);
 
-      if (selectedColors.length === 0) return;
+      state.selectedColors.push({
+        id: Date.now() + Math.random(),
+        r, g, b,
+        x, y,
+        hex,
+        enabled: true
+      });
 
-      // Get image data
-      const imageData = ctx.getImageData(0, 0, imageCanvas.width, imageCanvas.height);
-      const data = imageData.data;
+      renderColorsList();
+      processImage();
+    });
 
-      // Process each pixel for each selected color
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i+1];
-        const b = data[i+2];
+    canvas.addEventListener('mousemove', (e) => {
+      if (!state.originalImageData) return;
 
-        // Check against each selected color
-        for (const color of selectedColors) {
-          const tolerance = color.tolerance * 2.55; // Convert percentage to 0-255 range
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
 
-          // Calculate color distance (simple Euclidean distance in RGB space)
-          const distance = Math.sqrt(
-            Math.pow(r - color.r, 2) +
-            Math.pow(g - color.g, 2) +
-            Math.pow(b - color.b, 2)
-          );
+      const x = Math.floor((e.clientX - rect.left) * scaleX);
+      const y = Math.floor((e.clientY - rect.top) * scaleY);
 
-          // If color is within tolerance, make it transparent and break the loop
-          if (distance <= tolerance) {
-            data[i+3] = 0; // Set alpha to 0 (transparent)
-            break; // No need to check other colors
-          }
-        }
+      if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) {
+        loupe.classList.add('hidden');
+        return;
       }
 
-      // Update canvas with new image data
-      ctx.putImageData(imageData, 0, 0);
-    }
+      loupe.classList.remove('hidden');
+      loupe.style.left = `${e.clientX}px`;
+      loupe.style.top = `${e.clientY - 60}px`;
 
-    function resetCanvas() {
-      if (!originalImage) return;
+      // Draw zoomed crop into loupe
+      loupeCtx.imageSmoothingEnabled = false;
+      loupeCtx.clearRect(0, 0, 96, 96);
 
-      ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
-      ctx.drawImage(originalImage, 0, 0, imageCanvas.width, imageCanvas.height);
-    }
+      const cropSize = 12;
+      loupeCtx.drawImage(
+        canvas,
+        Math.max(0, x - cropSize / 2),
+        Math.max(0, y - cropSize / 2),
+        cropSize,
+        cropSize,
+        0,
+        0,
+        96,
+        96
+      );
 
-    function resetImage() {
-      if (!originalImage) return;
+      const pixelIdx = (y * canvas.width + x) * 4;
+      const r = state.originalImageData.data[pixelIdx];
+      const g = state.originalImageData.data[pixelIdx + 1];
+      const b = state.originalImageData.data[pixelIdx + 2];
+      loupeHex.textContent = rgbToHex(r, g, b);
+    });
 
-      resetCanvas();
-      clearAllColors();
-    }
+    canvas.addEventListener('mouseleave', () => {
+      loupe.classList.add('hidden');
+    });
 
-    function downloadImage() {
-      if (!originalImage) return;
+    thresholdSlider.addEventListener('input', (e) => {
+      state.threshold = parseInt(e.target.value, 10);
+      thresholdValueText.textContent = state.threshold;
+      processImage();
+    });
 
-      // Create temporary link element
+    fadeRangeSlider.addEventListener('input', (e) => {
+      state.fadeWindow = parseInt(e.target.value, 10);
+      fadeRangeValueText.textContent = state.fadeWindow;
+      if (state.fadeEnabled) processImage();
+    });
+
+    fadeToggle.addEventListener('change', (e) => {
+      state.fadeEnabled = e.target.checked;
+      fadeControls.style.opacity = state.fadeEnabled ? '1' : '0.4';
+      fadeControls.style.pointerEvents = state.fadeEnabled ? 'auto' : 'none';
+      processImage();
+    });
+
+    contiguousToggle.addEventListener('change', (e) => {
+      state.contiguous = e.target.checked;
+      processImage();
+    });
+
+    document.querySelectorAll('input[name="distanceFormula"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        state.distanceFormula = e.target.value;
+        processImage();
+      });
+    });
+
+    clearAllColorsBtn.addEventListener('click', () => {
+      state.selectedColors = [];
+      renderColorsList();
+      processImage();
+    });
+
+    resetSettingsBtn.addEventListener('click', () => {
+      state.threshold = 32;
+      state.fadeEnabled = true;
+      state.fadeWindow = 18;
+      state.contiguous = true;
+      state.distanceFormula = 'euclidean';
+
+      thresholdSlider.value = 32;
+      thresholdValueText.textContent = 32;
+      fadeRangeSlider.value = 18;
+      fadeRangeValueText.textContent = 18;
+      fadeToggle.checked = true;
+      fadeControls.style.opacity = '1';
+      fadeControls.style.pointerEvents = 'auto';
+      contiguousToggle.checked = true;
+      document.querySelector('input[name="distanceFormula"][value="euclidean"]').checked = true;
+
+      processImage();
+    });
+
+    imageInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          state.selectedColors = [];
+          loadSourceImage(ev.target.result);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    loadExampleBtn.addEventListener('click', () => {
+      state.selectedColors = [];
+      loadSourceImage(generateExampleIllustrationDataUrl());
+    });
+
+    // Drag and Drop
+    window.addEventListener('dragover', (e) => e.preventDefault());
+    window.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        const file = e.dataTransfer.files[0];
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            state.selectedColors = [];
+            loadSourceImage(ev.target.result);
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+    });
+
+    // Clipboard Paste
+    window.addEventListener('paste', (e) => {
+      const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+      for (const item of items) {
+        if (item.type.indexOf('image') === 0) {
+          const blob = item.getAsFile();
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            state.selectedColors = [];
+            loadSourceImage(ev.target.result);
+          };
+          reader.readAsDataURL(blob);
+          break;
+        }
+      }
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      if (!canvas.width || !canvas.height) return;
       const link = document.createElement('a');
-      link.download = 'transparent-background.png';
-      link.href = imageCanvas.toDataURL('image/png');
-
-      // Trigger download
-      document.body.appendChild(link);
+      link.download = 'background-removed.png';
+      link.href = canvas.toDataURL('image/png');
       link.click();
-      document.body.removeChild(link);
-    }
+    });
+
+    // Toggle original preview on hold
+    const startShowOriginal = () => {
+      state.isShowingOriginal = true;
+      processImage();
+    };
+    const stopShowOriginal = () => {
+      state.isShowingOriginal = false;
+      processImage();
+    };
+
+    toggleOriginalBtn.addEventListener('mousedown', startShowOriginal);
+    window.addEventListener('mouseup', stopShowOriginal);
+    toggleOriginalBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startShowOriginal(); });
+    window.addEventListener('touchend', stopShowOriginal);
+
+    document.getElementById('resetZoomBtn').addEventListener('click', () => {
+      canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+
+    // Initial load on page ready
+    window.onload = function () {
+      loadSourceImage(generateExampleIllustrationDataUrl());
+    };
   </script>
 </body>
 </html>
