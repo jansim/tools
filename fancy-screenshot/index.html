@@ -1,0 +1,1585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Perspective & Tilt-Shift Studio</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js (Hardware-accelerated 3D & texture mapping) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+    
+    * {
+      box-sizing: border-box;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    }
+    
+    code, .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      background: #27272a;
+      height: 5px;
+      border-radius: 9999px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #6366f1;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      background: #818cf8;
+    }
+
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #3f3f46;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #52525b;
+    }
+
+    .checkerboard {
+      background-size: 20px 20px;
+      background-position: 0 0, 10px 10px;
+      background-image: 
+        linear-gradient(45deg, #18181b 25%, transparent 25%, transparent 75%, #18181b 75%, #18181b),
+        linear-gradient(45deg, #18181b 25%, #111113 25%, #111113 75%, #18181b 75%, #18181b);
+    }
+
+    /* Focus reticle animation */
+    @keyframes focusPulse {
+      0% {
+        transform: translate(-50%, -50%) scale(1.6);
+        opacity: 0;
+      }
+      30% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.95;
+      }
+    }
+    .focus-reticle {
+      animation: focusPulse 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 h-screen w-screen overflow-hidden flex flex-col select-none">
+
+  <!-- Top App Header: Minimalist & Clean Utility Bar -->
+  <header class="h-12 border-b border-zinc-800/80 bg-zinc-900/70 backdrop-blur-xl px-4 flex items-center justify-between z-30 shrink-0">
+    <!-- Presets directly in the bar without branding -->
+    <div class="flex items-center gap-1.5 bg-zinc-950/60 p-1 rounded-xl border border-zinc-800/80">
+      <button onclick="applyPreset('codeFocus')" id="preset-codeFocus" class="preset-pill px-2.5 py-1 text-xs font-medium rounded-lg text-white bg-indigo-600/30 border border-indigo-500/40 hover:bg-indigo-600/50 transition">
+        Code Focus
+      </button>
+      <button onclick="applyPreset('dramatic')" id="preset-dramatic" class="preset-pill px-2.5 py-1 text-xs font-medium rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800 transition">
+        Dramatic Tilt
+      </button>
+      <button onclick="applyPreset('isometric')" id="preset-isometric" class="preset-pill px-2.5 py-1 text-xs font-medium rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800 transition">
+        Isometric
+      </button>
+      <button onclick="applyPreset('frontDesk')" id="preset-frontDesk" class="preset-pill px-2.5 py-1 text-xs font-medium rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800 transition">
+        Subtle Angle
+      </button>
+      <button onclick="resetCamera()" class="px-2.5 py-1 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition flex items-center gap-1">
+        <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Flat
+      </button>
+    </div>
+
+    <!-- Export Action Area -->
+    <div class="flex items-center gap-2">
+      <label class="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800/90 hover:bg-zinc-700 text-xs font-medium text-zinc-200 border border-zinc-700/60 transition shadow-sm active:scale-95">
+        <i data-lucide="upload" class="w-3.5 h-3.5 text-indigo-400"></i>
+        <span>Upload</span>
+        <input type="file" id="imageFileInput" accept="image/*" class="hidden" />
+      </label>
+
+      <button id="copyClipBtn" onclick="copyToClipboard()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800/90 hover:bg-zinc-700 text-xs font-medium text-zinc-200 border border-zinc-700/60 transition shadow-sm active:scale-95">
+        <i data-lucide="clipboard" class="w-3.5 h-3.5 text-zinc-400"></i>
+        <span>Copy</span>
+      </button>
+
+      <div class="relative inline-block text-left" id="exportMenuWrapper">
+        <button onclick="toggleExportMenu()" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-lg shadow-indigo-600/30 transition active:scale-95">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          <span>Export</span>
+          <i data-lucide="chevron-down" class="w-3 h-3 ml-0.5"></i>
+        </button>
+        <div id="exportDropdown" class="hidden absolute right-0 mt-2 w-52 rounded-xl bg-zinc-900 border border-zinc-800 shadow-2xl p-1 z-50">
+          <button onclick="downloadRender(1)" class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-zinc-800 text-zinc-200 flex items-center justify-between">
+            <span>PNG (1600x1200)</span>
+            <span class="text-[10px] text-zinc-500 font-mono">Standard</span>
+          </button>
+          <button onclick="downloadRender(2)" class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-zinc-800 text-zinc-200 flex items-center justify-between">
+            <span>Crisp 2K (3200x2400)</span>
+            <span class="text-[10px] text-indigo-400 font-mono font-bold">2x HD</span>
+          </button>
+          <button onclick="downloadRender(3)" class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-zinc-800 text-zinc-200 flex items-center justify-between">
+            <span>Ultra 4K (4800x3600)</span>
+            <span class="text-[10px] text-pink-400 font-mono font-bold">3x 4K</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Work Area -->
+  <div class="flex-1 flex overflow-hidden">
+
+    <!-- Left Controls Panel -->
+    <aside class="w-80 border-r border-zinc-800/80 bg-zinc-900/40 backdrop-blur-md flex flex-col h-full z-20 shrink-0">
+      
+      <!-- Tab Bar -->
+      <div class="flex border-b border-zinc-800/80 px-2 pt-2 gap-1 bg-zinc-900/60">
+        <button onclick="switchTab('camera')" id="tabBtn-camera" class="flex-1 pb-2 pt-1.5 text-xs font-semibold text-indigo-400 border-b-2 border-indigo-500 flex items-center justify-center gap-1.5 transition">
+          <i data-lucide="video" class="w-3.5 h-3.5"></i> Camera & 3D
+        </button>
+        <button onclick="switchTab('frame')" id="tabBtn-frame" class="flex-1 pb-2 pt-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-200 border-b-2 border-transparent flex items-center justify-center gap-1.5 transition">
+          <i data-lucide="sliders" class="w-3.5 h-3.5"></i> Focus & Optics
+        </button>
+        <button onclick="switchTab('backdrop')" id="tabBtn-backdrop" class="flex-1 pb-2 pt-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-200 border-b-2 border-transparent flex items-center justify-center gap-1.5 transition">
+          <i data-lucide="palette" class="w-3.5 h-3.5"></i> Backdrop
+        </button>
+      </div>
+
+      <!-- Controls Container -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-5">
+
+        <!-- TAB 1: CAMERA & PERSPECTIVE -->
+        <div id="tab-camera" class="space-y-4">
+          <div class="flex items-center justify-between pb-1 border-b border-zinc-800/60">
+            <span class="text-xs font-semibold uppercase tracking-wider text-zinc-400">Camera Perspective</span>
+            <span class="text-[10px] text-indigo-400 font-mono">3D Angles</span>
+          </div>
+
+          <!-- Pitch (Rotate X) -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <label class="text-zinc-300 font-medium flex items-center gap-1">
+                <i data-lucide="orbit" class="w-3 h-3 text-indigo-400"></i> Pitch (Tilt X)
+              </label>
+              <span id="val-rotX" class="text-zinc-400 font-mono text-[11px]">18°</span>
+            </div>
+            <input type="range" id="param-rotX" min="-50" max="50" value="18" step="0.5" class="w-full" />
+          </div>
+
+          <!-- Yaw (Rotate Y) -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <label class="text-zinc-300 font-medium flex items-center gap-1">
+                <i data-lucide="compass" class="w-3 h-3 text-violet-400"></i> Yaw (Rotate Y)
+              </label>
+              <span id="val-rotY" class="text-zinc-400 font-mono text-[11px]">-22°</span>
+            </div>
+            <input type="range" id="param-rotY" min="-50" max="50" value="-22" step="0.5" class="w-full" />
+          </div>
+
+          <!-- Roll (Rotate Z) -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <label class="text-zinc-300 font-medium flex items-center gap-1">
+                <i data-lucide="rotate-cw" class="w-3 h-3 text-pink-400"></i> Roll (Tilt Z)
+              </label>
+              <span id="val-rotZ" class="text-zinc-400 font-mono text-[11px]">5°</span>
+            </div>
+            <input type="range" id="param-rotZ" min="-30" max="30" value="5" step="0.5" class="w-full" />
+          </div>
+
+          <div class="pt-2 border-t border-zinc-800/60 flex items-center justify-between pb-1">
+            <span class="text-xs font-semibold uppercase tracking-wider text-zinc-400">Framing & Scale</span>
+          </div>
+
+          <!-- Zoom / Scale -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <label class="text-zinc-300 font-medium flex items-center gap-1">
+                <i data-lucide="zoom-in" class="w-3 h-3 text-emerald-400"></i> Zoom Scale (Macro Close-Up)
+              </label>
+              <span id="val-scale" class="text-zinc-400 font-mono text-[11px]">135%</span>
+            </div>
+            <input type="range" id="param-scale" min="50" max="220" value="135" step="1" class="w-full" />
+          </div>
+
+          <!-- Perspective / FOV -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <label class="text-zinc-300 font-medium flex items-center gap-1">
+                <i data-lucide="scan" class="w-3 h-3 text-indigo-400"></i> Camera Lens (FOV)
+              </label>
+              <span id="val-fov" class="text-zinc-400 font-mono text-[11px]">34°</span>
+            </div>
+            <input type="range" id="param-fov" min="15" max="65" value="34" step="1" class="w-full" />
+          </div>
+
+          <!-- Pan Offset X & Y -->
+          <div class="grid grid-cols-2 gap-3 pt-1">
+            <div class="space-y-1">
+              <div class="flex justify-between text-[11px] text-zinc-400">
+                <span>Pan X</span>
+                <span id="val-panX" class="font-mono">0px</span>
+              </div>
+              <input type="range" id="param-panX" min="-250" max="250" value="0" class="w-full" />
+            </div>
+            <div class="space-y-1">
+              <div class="flex justify-between text-[11px] text-zinc-400">
+                <span>Pan Y</span>
+                <span id="val-panY" class="font-mono">10px</span>
+              </div>
+              <input type="range" id="param-panY" min="-250" max="250" value="10" class="w-full" />
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: FRAME & OPTICS (BLUR & SHADOW) -->
+        <div id="tab-frame" class="hidden space-y-4">
+          <div class="flex items-center justify-between pb-1 border-b border-zinc-800/60">
+            <span class="text-xs font-semibold uppercase tracking-wider text-zinc-400">Tilt-Shift Optical Blur</span>
+            <span class="text-[10px] text-indigo-400 font-medium">Click Image to Focus</span>
+          </div>
+
+          <!-- Click to focus coordinate status card -->
+          <div class="p-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-lg bg-indigo-600/30 flex items-center justify-center text-indigo-400">
+                <i data-lucide="crosshair" class="w-4 h-4 animate-spin-slow"></i>
+              </div>
+              <div>
+                <div class="text-[11px] font-semibold text-zinc-200">Focal Target Position</div>
+                <div class="text-[10px] text-indigo-300">Click anywhere on preview to lock focus</div>
+              </div>
+            </div>
+            <div class="text-right">
+              <span id="val-focalTarget" class="text-[11px] font-mono font-bold text-indigo-300">38% • 42%</span>
+            </div>
+          </div>
+
+          <!-- Depth of Field Blur Intensity (Enhanced to 40px) -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <label class="text-zinc-300 font-medium flex items-center gap-1.5">
+                <i data-lucide="aperture" class="w-3.5 h-3.5 text-indigo-400"></i> Blur Intensity (Bokeh)
+              </label>
+              <span id="val-dof" class="text-zinc-400 font-mono text-[11px]">18.0px</span>
+            </div>
+            <input type="range" id="param-dof" min="0" max="40" value="18" step="0.5" class="w-full" />
+          </div>
+
+          <!-- Focal Depth Band Width -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <label class="text-zinc-300 font-medium">Sharp Focus Depth Band</label>
+              <span id="val-focalBand" class="text-zinc-400 font-mono text-[11px]">18%</span>
+            </div>
+            <input type="range" id="param-focalBand" min="4" max="55" value="18" class="w-full" />
+          </div>
+
+          <!-- Tilt Blur Angle -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <label class="text-zinc-300 font-medium">Tilt-Shift Slant Angle</label>
+              <span id="val-tiltAngle" class="text-zinc-400 font-mono text-[11px]">35°</span>
+            </div>
+            <input type="range" id="param-tiltAngle" min="-90" max="90" value="35" class="w-full" />
+          </div>
+
+          <!-- Bokeh Highlight Bloom -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <label class="text-zinc-300 font-medium">Bokeh Highlight Bloom</label>
+              <span id="val-bokehBloom" class="text-zinc-400 font-mono text-[11px]">50%</span>
+            </div>
+            <input type="range" id="param-bokehBloom" min="0" max="100" value="50" class="w-full" />
+          </div>
+
+          <div class="pt-2 border-t border-zinc-800/60 flex items-center justify-between pb-1">
+            <span class="text-xs font-semibold uppercase tracking-wider text-zinc-400">Screen Framing</span>
+          </div>
+
+          <!-- Window Chrome Selector (Default: Frameless) -->
+          <div class="space-y-2">
+            <label class="text-xs font-medium text-zinc-300">Window Header Style</label>
+            <div class="grid grid-cols-3 gap-2">
+              <button onclick="setChrome('none')" id="chrome-none" class="chrome-btn px-2.5 py-1.5 rounded-lg text-xs bg-zinc-800 text-white border border-indigo-500 font-medium text-center">
+                Frameless
+              </button>
+              <button onclick="setChrome('macos-dark')" id="chrome-macos-dark" class="chrome-btn px-2.5 py-1.5 rounded-lg text-xs bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border border-zinc-800 font-medium text-center">
+                macOS Dark
+              </button>
+              <button onclick="setChrome('macos-light')" id="chrome-macos-light" class="chrome-btn px-2.5 py-1.5 rounded-lg text-xs bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border border-zinc-800 font-medium text-center">
+                macOS Light
+              </button>
+            </div>
+          </div>
+
+          <!-- Corner Radius -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <label class="text-zinc-300 font-medium">Corner Radius</label>
+              <span id="val-radius" class="text-zinc-400 font-mono text-[11px]">6px</span>
+            </div>
+            <input type="range" id="param-radius" min="0" max="32" value="6" class="w-full" />
+          </div>
+
+          <!-- Drop Shadow Elevation -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <label class="text-zinc-300 font-medium">Drop Shadow Elevation</label>
+              <span id="val-shadow" class="text-zinc-400 font-mono text-[11px]">50%</span>
+            </div>
+            <input type="range" id="param-shadow" min="0" max="100" value="50" class="w-full" />
+          </div>
+        </div>
+
+        <!-- TAB 3: BACKDROP & LIGHTING -->
+        <div id="tab-backdrop" class="hidden space-y-4">
+          <div class="flex items-center justify-between pb-1 border-b border-zinc-800/60">
+            <span class="text-xs font-semibold uppercase tracking-wider text-zinc-400">Backdrop Scene</span>
+          </div>
+
+          <!-- Preset Background Styles -->
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="setBgPreset('studioDark')" id="bg-btn-studioDark" class="bg-preset-btn p-2 rounded-xl bg-zinc-800/90 border border-indigo-500/80 text-left flex items-center gap-2 group">
+              <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-zinc-800 to-slate-950 border border-zinc-700 shrink-0"></div>
+              <div class="text-[11px]">
+                <div class="font-semibold text-zinc-200">Studio Dark</div>
+                <div class="text-zinc-400 text-[10px]">Deep Slate/Teal</div>
+              </div>
+            </button>
+
+            <button onclick="setBgPreset('cyber')" id="bg-btn-cyber" class="bg-preset-btn p-2 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-left flex items-center gap-2 group">
+              <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-teal-900 via-cyan-950 to-slate-950 border border-zinc-700 shrink-0"></div>
+              <div class="text-[11px]">
+                <div class="font-semibold text-zinc-200">Oceanic Cyan</div>
+                <div class="text-zinc-500 text-[10px]">Developer Mood</div>
+              </div>
+            </button>
+
+            <button onclick="setBgPreset('aurora')" id="bg-btn-aurora" class="bg-preset-btn p-2 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-left flex items-center gap-2 group">
+              <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-950 border border-zinc-700 shrink-0"></div>
+              <div class="text-[11px]">
+                <div class="font-semibold text-zinc-200">Cosmic Aurora</div>
+                <div class="text-zinc-500 text-[10px]">Purple Glow</div>
+              </div>
+            </button>
+
+            <button onclick="setBgPreset('sunset')" id="bg-btn-sunset" class="bg-preset-btn p-2 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-left flex items-center gap-2 group">
+              <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-amber-700 via-rose-800 to-slate-950 border border-zinc-700 shrink-0"></div>
+              <div class="text-[11px]">
+                <div class="font-semibold text-zinc-200">Sunset Radiance</div>
+                <div class="text-zinc-500 text-[10px]">Warm Horizon</div>
+              </div>
+            </button>
+
+            <button onclick="setBgPreset('pureBlack')" id="bg-btn-pureBlack" class="bg-preset-btn p-2 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-left flex items-center gap-2 group">
+              <div class="w-7 h-7 rounded-lg bg-black border border-zinc-800 shrink-0"></div>
+              <div class="text-[11px]">
+                <div class="font-semibold text-zinc-200">OLED Black</div>
+                <div class="text-zinc-500 text-[10px]">Minimal</div>
+              </div>
+            </button>
+
+            <button onclick="setBgPreset('transparent')" id="bg-btn-transparent" class="bg-preset-btn p-2 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-left flex items-center gap-2 group">
+              <div class="w-7 h-7 rounded-lg checkerboard border border-zinc-700 shrink-0"></div>
+              <div class="text-[11px]">
+                <div class="font-semibold text-zinc-200">Transparent</div>
+                <div class="text-zinc-500 text-[10px]">PNG Cutout</div>
+              </div>
+            </button>
+          </div>
+
+          <div class="pt-2 border-t border-zinc-800/60 flex items-center justify-between pb-1">
+            <span class="text-xs font-semibold uppercase tracking-wider text-zinc-400">Atmosphere</span>
+          </div>
+
+          <!-- Vignette Strength -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <label class="text-zinc-300 font-medium">Cinema Vignette</label>
+              <span id="val-vignette" class="text-zinc-400 font-mono text-[11px]">35%</span>
+            </div>
+            <input type="range" id="param-vignette" min="0" max="100" value="35" class="w-full" />
+          </div>
+
+          <!-- Color Noise / Grain -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <label class="text-zinc-300 font-medium">Analog Film Grain</label>
+              <span id="val-noise" class="text-zinc-400 font-mono text-[11px]">8%</span>
+            </div>
+            <input type="range" id="param-noise" min="0" max="30" value="8" class="w-full" />
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Quick Drag & Drop Hint Footer -->
+      <div class="p-3 border-t border-zinc-800/80 bg-zinc-950/70 text-[11px] text-zinc-400 flex items-center gap-2">
+        <i data-lucide="info" class="w-3.5 h-3.5 text-indigo-400 shrink-0"></i>
+        <span>Paste with <kbd class="px-1 py-0.5 rounded bg-zinc-800 text-zinc-200 font-mono text-[10px]">Ctrl+V</kbd> or drag any image!</span>
+      </div>
+    </aside>
+
+    <!-- Main Viewport / Canvas Stage -->
+    <main id="viewportContainer" class="flex-1 relative flex items-center justify-center p-4 lg:p-8 overflow-hidden select-none bg-zinc-950">
+      
+      <!-- Hardware Accelerated 3D Canvas -->
+      <canvas id="renderCanvas" class="shadow-2xl rounded-2xl cursor-crosshair border border-zinc-800/60 max-w-full max-h-full object-contain transition-shadow duration-300"></canvas>
+
+      <!-- Focus Reticle Target Indicator Overlay -->
+      <div id="focusReticle" class="absolute pointer-events-none hidden z-30">
+        <div class="relative focus-reticle flex items-center justify-center">
+          <div class="w-12 h-12 rounded-full border-2 border-indigo-400/90 shadow-[0_0_15px_rgba(99,102,241,0.8)] bg-indigo-500/10"></div>
+          <div class="w-2 h-2 rounded-full bg-indigo-400 absolute"></div>
+          <div class="absolute -bottom-6 px-2 py-0.5 rounded bg-zinc-900/90 border border-indigo-500/50 text-[10px] font-mono font-medium text-indigo-200 whitespace-nowrap shadow-lg">
+            Focus Locked
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating Controls on Viewport -->
+      <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-zinc-900/80 backdrop-blur-xl border border-zinc-800/80 px-3 py-1.5 rounded-full shadow-2xl z-20 text-xs text-zinc-300">
+        <span class="flex items-center gap-1.5 pr-2 border-r border-zinc-700/60">
+          <i data-lucide="crosshair" class="w-3.5 h-3.5 text-indigo-400"></i>
+          <span>Click image to set focus</span>
+        </span>
+        <span class="flex items-center gap-1.5 pr-2 border-r border-zinc-700/60 text-zinc-400 text-[11px]">
+          <span>Drag to tilt</span>
+        </span>
+        <button onclick="adjustParam('scale', 8)" class="p-1 hover:text-white hover:bg-zinc-800 rounded-full" title="Zoom In">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+        </button>
+        <button onclick="adjustParam('scale', -8)" class="p-1 hover:text-white hover:bg-zinc-800 rounded-full" title="Zoom Out">
+          <i data-lucide="minus" class="w-3.5 h-3.5"></i>
+        </button>
+        <button onclick="applyPreset('codeFocus')" class="p-1 hover:text-white hover:bg-zinc-800 rounded-full" title="Default Perspective">
+          <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+        </button>
+      </div>
+
+      <!-- Drag & Drop Upload Overlay -->
+      <div id="dropOverlay" class="absolute inset-4 rounded-2xl border-2 border-dashed border-indigo-500 bg-indigo-950/40 backdrop-blur-sm hidden items-center justify-center flex-col gap-3 z-40 pointer-events-none">
+        <div class="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-xl shadow-indigo-500/30 animate-bounce">
+          <i data-lucide="image" class="w-8 h-8 text-white"></i>
+        </div>
+        <div class="text-center">
+          <p class="text-lg font-bold text-white">Drop your screenshot here</p>
+          <p class="text-xs text-indigo-200">PNG, JPG, WebP supported</p>
+        </div>
+      </div>
+
+      <!-- Success Notification Toast -->
+      <div id="toast" class="absolute top-6 left-1/2 -translate-x-1/2 bg-zinc-900/90 border border-zinc-700 text-white px-4 py-2 rounded-xl text-xs shadow-2xl flex items-center gap-2 transform -translate-y-16 opacity-0 transition-all duration-300 z-50 pointer-events-none">
+        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+        <span id="toastMsg">Screenshot applied!</span>
+      </div>
+    </main>
+
+  </div>
+
+  <script>
+    // App State Configuration matching user specifications
+    const state = {
+      image: null,
+      rotX: 20,            // Degrees (Pitch)
+      rotY: -24,           // Degrees (Yaw)
+      rotZ: 6,             // Degrees (Roll)
+      fov: 32,             // Degrees field of view
+      scale: 135,          // Macro close-up zoom scale % (intense zoom matching screenshot)
+      panX: -65,           // Offset to bring crisp focused code directly to the center-front
+      panY: 25,            // Pixels
+      dof: 18.0,           // Intense Depth of Field blur radius (increased from 8.5)
+      focalPosX: 0.38,     // Normalized focal point X (0..1)
+      focalPosY: 0.42,     // Normalized focal point Y (0..1)
+      focalBand: 18,       // Sharp focus band thickness %
+      tiltAngle: 35,       // Angle of tilt blur plane (degrees)
+      bokehBloom: 50,      // Highlight bloom strength
+      chrome: 'none',      // Frameless code aesthetic
+      radius: 6,           // Subtle rounded corners
+      shadow: 55,          // Drop shadow elevation %
+      backdrop: 'studioDark',
+      vignette: 35,
+      noise: 8
+    };
+
+    // Canvas Dimensions
+    const RENDER_W = 1600;
+    const RENDER_H = 1200;
+
+    const canvas = document.getElementById('renderCanvas');
+    canvas.width = RENDER_W;
+    canvas.height = RENDER_H;
+
+    // Initialize Three.js Hardware Accelerated Renderer
+    const renderer = new THREE.WebGLRenderer({
+      canvas: canvas,
+      antialias: true,
+      alpha: true,
+      preserveDrawingBuffer: true,
+      powerPreference: 'high-performance'
+    });
+    renderer.setSize(RENDER_W, RENDER_H, false);
+    renderer.setPixelRatio(1);
+
+    // 3D Scene setup
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(state.fov, RENDER_W / RENDER_H, 0.1, 100);
+    camera.position.set(0, 0, 5.2);
+
+    // Group for screen plane + drop shadow
+    const screenGroup = new THREE.Group();
+    scene.add(screenGroup);
+
+    // Textures & Meshes
+    let screenMesh = null;
+    let shadowMesh = null;
+    let screenTexture = null;
+
+    // Offscreen render target for postprocessing
+    let renderTarget = new THREE.WebGLRenderTarget(RENDER_W, RENDER_H, {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      format: THREE.RGBAFormat
+    });
+
+    // Postprocessing Scene (Full-screen quad)
+    const postScene = new THREE.Scene();
+    const postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+    // Enhanced Custom GLSL Shader with 28-sample Poisson-Bokeh, Chromatic Aberration & 2D Focal Point
+    const postMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        tDiffuse: { value: null },
+        uResolution: { value: new THREE.Vector2(RENDER_W, RENDER_H) },
+        uDof: { value: state.dof },
+        uFocalPos: { value: new THREE.Vector2(state.focalPosX, state.focalPosY) },
+        uFocalBand: { value: state.focalBand / 100 },
+        uTiltAngle: { value: THREE.MathUtils.degToRad(state.tiltAngle) },
+        uBokehBloom: { value: state.bokehBloom / 100 },
+        uVignette: { value: state.vignette / 100 },
+        uNoise: { value: state.noise / 100 },
+        uBackdropType: { value: 0 }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform vec2 uResolution;
+        uniform float uDof;
+        uniform vec2 uFocalPos;
+        uniform float uFocalBand;
+        uniform float uTiltAngle;
+        uniform float uBokehBloom;
+        uniform float uVignette;
+        uniform float uNoise;
+        uniform int uBackdropType;
+
+        varying vec2 vUv;
+
+        // Hash function for film grain
+        float hash(vec2 p) {
+          vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+          p3 += dot(p3, p3.yzx + 33.33);
+          return fract((p3.x + p3.y) * p3.z);
+        }
+
+        // Procedural Backdrop Generator
+        vec4 getBackdropColor(vec2 uv) {
+          if (uBackdropType == 5) {
+            return vec4(0.0, 0.0, 0.0, 0.0);
+          } else if (uBackdropType == 4) {
+            return vec4(0.02, 0.02, 0.025, 1.0);
+          } else if (uBackdropType == 1) {
+            vec3 cTop = vec3(0.015, 0.12, 0.14);
+            vec3 cBtm = vec3(0.01, 0.03, 0.06);
+            vec3 base = mix(cTop, cBtm, uv.y);
+            float glow = smoothstep(0.85, 0.0, length(uv - vec2(0.55, 0.45)));
+            base += vec3(0.02, 0.45, 0.55) * glow * 0.4;
+            return vec4(base, 1.0);
+          } else if (uBackdropType == 2) {
+            vec3 cTop = vec3(0.08, 0.05, 0.22);
+            vec3 cBtm = vec3(0.01, 0.02, 0.08);
+            vec3 base = mix(cTop, cBtm, uv.y);
+            float glow = smoothstep(0.85, 0.0, length(uv - vec2(0.4, 0.6)));
+            base += vec3(0.5, 0.15, 0.75) * glow * 0.5;
+            return vec4(base, 1.0);
+          } else if (uBackdropType == 3) {
+            vec3 cTop = vec3(0.24, 0.06, 0.04);
+            vec3 cBtm = vec3(0.04, 0.06, 0.14);
+            vec3 base = mix(cTop, cBtm, uv.y);
+            float glow = smoothstep(0.85, 0.0, length(uv - vec2(0.65, 0.55)));
+            base += vec3(0.85, 0.35, 0.1) * glow * 0.4;
+            return vec4(base, 1.0);
+          } else {
+            vec2 center = vec2(0.5, 0.5);
+            float d = length(uv - center);
+            vec3 inner = vec3(0.07, 0.11, 0.14);
+            vec3 outer = vec3(0.025, 0.035, 0.045);
+            vec3 base = mix(inner, outer, smoothstep(0.0, 0.75, d));
+            return vec4(base, 1.0);
+          }
+        }
+
+        void main() {
+          vec2 uv = vUv;
+
+          // Compute distance to focal plane passing through clicked uFocalPos:
+          vec2 tiltNormal = vec2(cos(uTiltAngle), sin(uTiltAngle));
+          vec2 delta = uv - uFocalPos;
+          
+          // Distance along the tilt axis
+          float distPlane = dot(delta, tiltNormal);
+          
+          // Asymmetric blur: background recedes into very heavy blur, foreground also blurs
+          float distMetric = abs(distPlane);
+          if (distPlane > 0.0) {
+            distMetric *= 1.25; // Enhance deep background blur
+          }
+
+          // Smooth blur factor with sharp focused window
+          float blurAmount = smoothstep(uFocalBand * 0.45, uFocalBand + 0.3, distMetric) * uDof;
+
+          vec4 sceneColor = vec4(0.0);
+          vec2 texel = 1.0 / uResolution;
+
+          if (blurAmount < 0.25) {
+            sceneColor = texture2D(tDiffuse, uv);
+          } else {
+            // High quality 28-sample disc bokeh with subtle chromatic fringe
+            const int SAMPLES = 28;
+            vec4 accum = vec4(0.0);
+            float totalWeight = 0.0;
+
+            for (int i = 0; i < SAMPLES; i++) {
+              float fi = float(i);
+              float r = sqrt((fi + 0.5) / float(SAMPLES)) * blurAmount;
+              float theta = fi * 2.3999632; // golden angle
+              vec2 offset = vec2(cos(theta), sin(theta)) * r * texel;
+
+              // Subtle optical chromatic separation on blur edges
+              vec2 chroma = offset * 0.07;
+              float rCol = texture2D(tDiffuse, uv + offset + chroma).r;
+              vec4 centerSample = texture2D(tDiffuse, uv + offset);
+              float bCol = texture2D(tDiffuse, uv + offset - chroma).b;
+
+              vec4 s = vec4(rCol, centerSample.g, bCol, centerSample.a);
+
+              // Bokeh highlight bloom: bright code syntax highlights bloom gently
+              float luma = dot(s.rgb, vec3(0.299, 0.587, 0.114));
+              float weight = 1.0 + smoothstep(0.45, 1.0, luma) * (uBokehBloom * 1.5);
+
+              accum += s * weight;
+              totalWeight += weight;
+            }
+            sceneColor = accum / totalWeight;
+          }
+
+          // Composite foreground scene over background
+          vec4 bg = getBackdropColor(uv);
+          vec3 finalRgb = mix(bg.rgb, sceneColor.rgb, sceneColor.a);
+          float finalA = (uBackdropType == 5) ? sceneColor.a : 1.0;
+
+          // Cinema Vignette
+          if (uVignette > 0.0) {
+            float vig = length((uv - 0.5) * vec2(1.0, uResolution.y / uResolution.x));
+            float vigFactor = smoothstep(0.28, 0.85, vig) * (uVignette * 0.8);
+            finalRgb *= (1.0 - vigFactor);
+          }
+
+          // Analog Film Grain
+          if (uNoise > 0.0) {
+            float grain = (hash(uv * uResolution + 31.41) - 0.5) * (uNoise * 0.22);
+            finalRgb += grain;
+          }
+
+          gl_FragColor = vec4(finalRgb, finalA);
+        }
+      `
+    });
+
+    const postQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), postMaterial);
+    postScene.add(postQuad);
+
+    // Procedural Soft Shadow Texture
+    function createShadowTexture() {
+      const sCanvas = document.createElement('canvas');
+      sCanvas.width = 256;
+      sCanvas.height = 256;
+      const sCtx = sCanvas.getContext('2d');
+      const radGrad = sCtx.createRadialGradient(128, 128, 20, 128, 128, 128);
+      radGrad.addColorStop(0, 'rgba(0, 0, 0, 0.85)');
+      radGrad.addColorStop(0.5, 'rgba(0, 0, 0, 0.45)');
+      radGrad.addColorStop(0.85, 'rgba(0, 0, 0, 0.1)');
+      radGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      sCtx.fillStyle = radGrad;
+      sCtx.fillRect(0, 0, 256, 256);
+      const tex = new THREE.CanvasTexture(sCanvas);
+      return tex;
+    }
+    const shadowTexture = createShadowTexture();
+
+    // Default Code Mockup generator matching screenshot_repo.jpg style
+    function generateDefaultScreenshot() {
+      const off = document.createElement('canvas');
+      off.width = 1600;
+      off.height = 1000;
+      const g = off.getContext('2d');
+
+      // Base Editor Window Dark Teal
+      g.fillStyle = '#0a1017';
+      g.fillRect(0, 0, off.width, off.height);
+
+      // Left Git / File Tree Sidebar
+      g.fillStyle = '#060a0f';
+      g.fillRect(0, 0, 320, off.height);
+      g.fillStyle = '#1e293b';
+      g.fillRect(320, 0, 1, off.height);
+
+      // Left sidebar items
+      g.fillStyle = '#64748b';
+      g.font = '600 11px system-ui';
+      g.fillText('HISTORY  README.qmd', 24, 35);
+      g.fillText('committed changes  You, now', 24, 65);
+      g.fillText('date links to resources by ...', 24, 95);
+      g.fillText('over 3 months ago', 24, 125);
+      g.fillText('origin, ... Update name of...', 24, 155);
+      g.fillText('Add proper CC-BY-SA license...', 24, 185);
+      g.fillText('Add course contents You, ...', 24, 215);
+      g.fillText('Add course README You, 8 mo...', 24, 245);
+
+      g.fillText('REPOSITORIES', 24, 320);
+      g.fillText('SEARCH & COMPARE', 24, 355);
+      g.fillText('COMMITS 0 1 main', 24, 390);
+
+      // Top Breadcrumb header
+      g.fillStyle = '#0d151f';
+      g.fillRect(321, 0, off.width - 321, 40);
+      g.fillStyle = '#38bdf8';
+      g.font = '500 13px system-ui';
+      g.fillText('README.qmd', 345, 25);
+      g.fillStyle = '#64748b';
+      g.fillText('>  Contents  >  Slides', 440, 25);
+
+      // Code Editor content
+      const codeLines = [
+        { num: '14', text: '', color: '#94a3b8' },
+        { num: '15', text: 'This repository contains the course materials for a one-day workshop titled', color: '#93c5fd' },
+        { num: '', text: '  "Advanced `git`", developed for the Scientific Computing Center (SCC) and House', color: '#38bdf8' },
+        { num: '', text: '  of Competence (HOC) at the Karlsruhe Institute of Technology (KIT).', color: '#38bdf8' },
+        { num: '16', text: '', color: '#94a3b8' },
+        { num: '17', text: '## Contents', color: '#6ee7b7' },
+        { num: '18', text: '', color: '#94a3b8' },
+        { num: '19', text: '### Slides', color: '#6ee7b7' },
+        { num: '20', text: '', color: '#94a3b8' },
+        { num: '21', text: '- Block 1: Intro, Recap & Merging', color: '#cbd5e1' },
+        { num: '22', text: '  - 1.0 Intro [[slides]](output/1.0-intro.html)', color: '#fbbf24' },
+        { num: '23', text: '  - 1.1 Basics of git [[slides]](output/1.1-git-basics.html)', color: '#fbbf24' },
+        { num: '24', text: '  - 1.2 Branches & Merging [[slides]](output/1.2-branches_merging.html)', color: '#fbbf24' },
+        { num: '25', text: '', color: '#94a3b8' },
+        { num: '26', text: '- Block 2: Best Practices: Pull / Merge Requests, Trunk-Based Development', color: '#cbd5e1' },
+        { num: '27', text: '  - 2.1 Collaboration & Pull Requests [[slides]](output/2.1-collaboration.html)', color: '#fbbf24' },
+        { num: '28', text: '  - 2.2 Trunk Based Development [[slides]](output/2.2-trunk-based.html)', color: '#fbbf24' },
+        { num: '29', text: '', color: '#94a3b8' },
+        { num: '30', text: '- Block 3: CI / CD with GitHub Actions & Automated Testing', color: '#cbd5e1' }
+      ];
+
+      g.font = '14px JetBrains Mono, monospace';
+      codeLines.forEach((line, idx) => {
+        const y = 80 + idx * 24;
+        if (line.num) {
+          g.fillStyle = '#334155';
+          g.fillText(line.num, 345, y);
+        }
+        g.fillStyle = line.color;
+        g.fillText(line.text, 385, y);
+      });
+
+      // Bottom Commit Graph Panel
+      const btmY = 570;
+      g.fillStyle = '#05080c';
+      g.fillRect(321, btmY, off.width - 321, off.height - btmY);
+      g.fillStyle = '#1e293b';
+      g.fillRect(321, btmY, off.width - 321, 1);
+
+      // Panel tab bar
+      g.fillStyle = '#64748b';
+      g.font = '600 11px system-ui';
+      g.fillText('TERMINAL    DEBUG CONSOLE    PROBLEMS    PORTS    GITLENS    OUTPUT', 345, btmY + 28);
+      g.fillStyle = '#38bdf8';
+      g.font = 'bold 12px system-ui';
+      g.fillText('COMMIT GRAPH: ADVANCED-GIT', 345, btmY + 60);
+
+      // Graph Branch Lines & Commits
+      const graphNodes = [
+        { text: 'Work in progress', tag: 'main', color: '#38bdf8' },
+        { text: 'Update links to resources by Walter Nie...', tag: '', color: '#2dd4bf' },
+        { text: 'Update name of SCC in slides', tag: '', color: '#2dd4bf' },
+        { text: 'Add End of Block / Section slides', tag: '', color: '#fbbf24' },
+        { text: 'Add proper CC-BY-SA license to footer', tag: '', color: '#f43f5e' },
+        { text: 'Initial commit & course architecture', tag: '', color: '#818cf8' }
+      ];
+
+      // Vertical branch lines
+      g.strokeStyle = '#38bdf8';
+      g.lineWidth = 3;
+      g.beginPath();
+      g.moveTo(560, btmY + 90);
+      g.lineTo(560, btmY + 380);
+      g.stroke();
+
+      graphNodes.forEach((node, i) => {
+        const rowY = btmY + 100 + i * 44;
+        // Dot
+        g.fillStyle = node.color;
+        g.beginPath();
+        g.arc(560, rowY, 7, 0, Math.PI * 2);
+        g.fill();
+        g.strokeStyle = '#05080c';
+        g.lineWidth = 2;
+        g.stroke();
+
+        if (node.tag) {
+          g.fillStyle = '#0284c7';
+          g.roundRect(580, rowY - 12, 54, 22, 5);
+          g.fill();
+          g.fillStyle = '#ffffff';
+          g.font = 'bold 11px system-ui';
+          g.fillText(node.tag, 592, rowY + 3);
+        }
+
+        g.fillStyle = '#e2e8f0';
+        g.font = '13px system-ui';
+        g.fillText(node.text, node.tag ? 645 : 585, rowY + 4);
+      });
+
+      const img = new Image();
+      img.src = off.toDataURL();
+      img.onload = () => {
+        state.image = img;
+        updateScreenMesh();
+        render();
+      };
+    }
+
+    // Prepare processed canvas with optional Window Chrome and rounded corners
+    function createProcessedCanvas() {
+      if (!state.image) return null;
+      const src = state.image;
+      const hasChrome = state.chrome !== 'none';
+      const chromeHeight = hasChrome ? 42 : 0;
+      const r = state.radius;
+
+      const pCanvas = document.createElement('canvas');
+      pCanvas.width = src.width;
+      pCanvas.height = src.height + chromeHeight;
+      const pCtx = pCanvas.getContext('2d');
+
+      // Rounded clipping boundary
+      if (r > 0) {
+        pCtx.beginPath();
+        pCtx.roundRect(0, 0, pCanvas.width, pCanvas.height, r);
+        pCtx.clip();
+      }
+
+      // Chrome header
+      if (hasChrome) {
+        const isDark = state.chrome === 'macos-dark';
+        pCtx.fillStyle = isDark ? '#161922' : '#f1f3f5';
+        pCtx.fillRect(0, 0, pCanvas.width, chromeHeight);
+        pCtx.fillStyle = isDark ? '#272c3b' : '#d8dee4';
+        pCtx.fillRect(0, chromeHeight - 1, pCanvas.width, 1);
+
+        // macOS Traffic light dots
+        const dotY = chromeHeight / 2;
+        pCtx.fillStyle = '#ff5f56'; pCtx.beginPath(); pCtx.arc(20, dotY, 6, 0, Math.PI * 2); pCtx.fill();
+        pCtx.fillStyle = '#ffbd2e'; pCtx.beginPath(); pCtx.arc(38, dotY, 6, 0, Math.PI * 2); pCtx.fill();
+        pCtx.fillStyle = '#27c93f'; pCtx.beginPath(); pCtx.arc(56, dotY, 6, 0, Math.PI * 2); pCtx.fill();
+
+        // Browser Address pill
+        const pillW = Math.min(300, pCanvas.width * 0.4);
+        const pillX = (pCanvas.width - pillW) / 2;
+        pCtx.fillStyle = isDark ? '#0c0e14' : '#ffffff';
+        pCtx.roundRect(pillX, 8, pillW, 26, 6);
+        pCtx.fill();
+
+        pCtx.fillStyle = isDark ? '#64748b' : '#94a3b8';
+        pCtx.font = '500 11px system-ui';
+        pCtx.fillText('fancy-screenshot.app', pillX + 28, 25);
+      }
+
+      // Draw original screenshot
+      pCtx.drawImage(src, 0, chromeHeight, src.width, src.height);
+
+      // Subtle rim edge glow
+      pCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      pCtx.lineWidth = 2;
+      pCtx.roundRect(1, 1, pCanvas.width - 2, pCanvas.height - 2, r);
+      pCtx.stroke();
+
+      return pCanvas;
+    }
+
+    // Update Three.js Meshes when image or aspect ratio changes
+    function updateScreenMesh() {
+      const processed = createProcessedCanvas();
+      if (!processed) return;
+
+      if (screenTexture) screenTexture.dispose();
+      screenTexture = new THREE.CanvasTexture(processed);
+      screenTexture.generateMipmaps = true;
+      screenTexture.minFilter = THREE.LinearMipmapLinearFilter;
+      screenTexture.magFilter = THREE.LinearFilter;
+      screenTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+      const aspect = processed.width / processed.height;
+      const baseHeight = 3.3;
+      const baseWidth = baseHeight * aspect;
+
+      // Clean up previous meshes
+      if (screenMesh) {
+        screenGroup.remove(screenMesh);
+        screenMesh.geometry.dispose();
+        screenMesh.material.dispose();
+      }
+      if (shadowMesh) {
+        screenGroup.remove(shadowMesh);
+        shadowMesh.geometry.dispose();
+        shadowMesh.material.dispose();
+      }
+
+      // Screen plane mesh: 100% emissive self-illuminated display (zero glare or specular wash)
+      const planeGeo = new THREE.PlaneGeometry(baseWidth, baseHeight, 1, 1);
+      const planeMat = new THREE.MeshBasicMaterial({
+        map: screenTexture
+      });
+      screenMesh = new THREE.Mesh(planeGeo, planeMat);
+      screenGroup.add(screenMesh);
+
+      // Floating Drop Shadow plane behind the screen
+      const shadowGeo = new THREE.PlaneGeometry(baseWidth * 1.35, baseHeight * 1.35, 1, 1);
+      const shadowMat = new THREE.MeshBasicMaterial({
+        map: shadowTexture,
+        transparent: true,
+        opacity: (state.shadow / 100) * 0.75,
+        depthWrite: false
+      });
+      shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+      shadowMesh.position.set(0.12, -0.22, -0.06);
+      screenGroup.add(shadowMesh);
+    }
+
+    // Render loop
+    function render() {
+      if (!screenMesh) return;
+
+      // Update camera
+      camera.fov = state.fov;
+      camera.updateProjectionMatrix();
+
+      // Transform 3D group
+      screenGroup.rotation.x = -THREE.MathUtils.degToRad(state.rotX);
+      screenGroup.rotation.y = THREE.MathUtils.degToRad(state.rotY);
+      screenGroup.rotation.z = -THREE.MathUtils.degToRad(state.rotZ);
+
+      const s = state.scale / 100;
+      screenGroup.scale.set(s, s, s);
+
+      // Pan translation
+      screenGroup.position.x = state.panX * 0.0035;
+      screenGroup.position.y = -state.panY * 0.0035;
+
+      // Update shadow opacity
+      if (shadowMesh) {
+        shadowMesh.material.opacity = (state.shadow / 100) * 0.75;
+      }
+
+      // Pass 1: Render 3D Screen to offscreen target
+      renderer.setRenderTarget(renderTarget);
+      renderer.setClearColor(0x000000, 0);
+      renderer.clear();
+      renderer.render(scene, camera);
+
+      // Pass 2: Postprocessing Shader (Bokeh Depth-of-field, Vignette, Grain, Backdrop)
+      renderer.setRenderTarget(null);
+      postMaterial.uniforms.tDiffuse.value = renderTarget.texture;
+      postMaterial.uniforms.uDof.value = state.dof;
+      postMaterial.uniforms.uFocalPos.value.set(state.focalPosX, state.focalPosY);
+      postMaterial.uniforms.uFocalBand.value = state.focalBand / 100;
+      postMaterial.uniforms.uTiltAngle.value = THREE.MathUtils.degToRad(state.tiltAngle);
+      postMaterial.uniforms.uBokehBloom.value = state.bokehBloom / 100;
+      postMaterial.uniforms.uVignette.value = state.vignette / 100;
+      postMaterial.uniforms.uNoise.value = state.noise / 100;
+
+      const backdropMap = {
+        'studioDark': 0,
+        'cyber': 1,
+        'aurora': 2,
+        'sunset': 3,
+        'pureBlack': 4,
+        'transparent': 5
+      };
+      postMaterial.uniforms.uBackdropType.value = backdropMap[state.backdrop] || 0;
+
+      renderer.render(postScene, postCamera);
+    }
+
+    // UI Tab Navigation
+    function switchTab(tabKey) {
+      ['camera', 'frame', 'backdrop'].forEach(k => {
+        const pane = document.getElementById(`tab-${k}`);
+        const btn = document.getElementById(`tabBtn-${k}`);
+        if (k === tabKey) {
+          pane.classList.remove('hidden');
+          btn.classList.add('text-indigo-400', 'border-indigo-500');
+          btn.classList.remove('text-zinc-400', 'border-transparent');
+        } else {
+          pane.classList.add('hidden');
+          btn.classList.remove('text-indigo-400', 'border-indigo-500');
+          btn.classList.add('text-zinc-400', 'border-transparent');
+        }
+      });
+    }
+
+    // Input Bindings
+    const paramBindings = [
+      { id: 'rotX', unit: '°', prop: 'rotX' },
+      { id: 'rotY', unit: '°', prop: 'rotY' },
+      { id: 'rotZ', unit: '°', prop: 'rotZ' },
+      { id: 'fov', unit: '°', prop: 'fov' },
+      { id: 'scale', unit: '%', prop: 'scale' },
+      { id: 'panX', unit: 'px', prop: 'panX' },
+      { id: 'panY', unit: 'px', prop: 'panY' },
+      { id: 'dof', unit: 'px', prop: 'dof' },
+      { id: 'focalBand', unit: '%', prop: 'focalBand' },
+      { id: 'tiltAngle', unit: '°', prop: 'tiltAngle' },
+      { id: 'bokehBloom', unit: '%', prop: 'bokehBloom' },
+      { id: 'radius', unit: 'px', prop: 'radius', reTexture: true },
+      { id: 'shadow', unit: '%', prop: 'shadow' },
+      { id: 'vignette', unit: '%', prop: 'vignette' },
+      { id: 'noise', unit: '%', prop: 'noise' }
+    ];
+
+    paramBindings.forEach(({ id, unit, prop, reTexture }) => {
+      const input = document.getElementById(`param-${id}`);
+      const label = document.getElementById(`val-${id}`);
+      if (!input) return;
+
+      input.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        state[prop] = val;
+        if (label) label.innerText = `${val}${unit}`;
+        if (reTexture) {
+          updateScreenMesh();
+        }
+        render();
+      });
+    });
+
+    function syncUIValues() {
+      paramBindings.forEach(({ id, unit, prop }) => {
+        const input = document.getElementById(`param-${id}`);
+        const label = document.getElementById(`val-${id}`);
+        if (input) input.value = state[prop];
+        if (label) label.innerText = `${state[prop]}${unit}`;
+      });
+      const targetLabel = document.getElementById('val-focalTarget');
+      if (targetLabel) {
+        targetLabel.innerText = `${Math.round(state.focalPosX * 100)}% • ${Math.round(state.focalPosY * 100)}%`;
+      }
+    }
+
+    function adjustParam(prop, delta) {
+      state[prop] = Math.min(220, Math.max(40, state[prop] + delta));
+      syncUIValues();
+      render();
+    }
+
+    // Window Chrome Selector
+    function setChrome(style) {
+      state.chrome = style;
+      document.querySelectorAll('.chrome-btn').forEach(b => {
+        b.classList.remove('border-indigo-500', 'text-white', 'bg-zinc-800');
+        b.classList.add('border-zinc-800', 'text-zinc-400', 'bg-zinc-900');
+      });
+      const activeBtn = document.getElementById(`chrome-${style}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('border-zinc-800', 'text-zinc-400', 'bg-zinc-900');
+        activeBtn.classList.add('border-indigo-500', 'text-white', 'bg-zinc-800');
+      }
+      updateScreenMesh();
+      render();
+    }
+
+    // Backdrop Preset Selector
+    function setBgPreset(name) {
+      state.backdrop = name;
+      document.querySelectorAll('.bg-preset-btn').forEach(b => {
+        b.classList.remove('border-indigo-500/80', 'bg-zinc-800/90');
+        b.classList.add('border-zinc-800', 'bg-zinc-900');
+      });
+      const currentBtn = document.getElementById(`bg-btn-${name}`);
+      if (currentBtn) {
+        currentBtn.classList.remove('border-zinc-800', 'bg-zinc-900');
+        currentBtn.classList.add('border-indigo-500/80', 'bg-zinc-800/90');
+      }
+      render();
+    }
+
+    // Preset Pill Active Indicator
+    function updatePresetHighlight(activeType) {
+      document.querySelectorAll('.preset-pill').forEach(btn => {
+        btn.classList.remove('text-white', 'bg-indigo-600/30', 'border', 'border-indigo-500/40');
+        btn.classList.add('text-zinc-300', 'hover:text-white', 'hover:bg-zinc-800');
+      });
+      const active = document.getElementById(`preset-${activeType}`);
+      if (active) {
+        active.classList.add('text-white', 'bg-indigo-600/30', 'border', 'border-indigo-500/40');
+        active.classList.remove('text-zinc-300', 'hover:bg-zinc-800');
+      }
+    }
+
+    // Presets Handlers
+    function applyPreset(type) {
+      switch (type) {
+        case 'codeFocus':
+          state.rotX = 20;
+          state.rotY = -24;
+          state.rotZ = 6;
+          state.scale = 135; // Intense close-up
+          state.fov = 32;
+          state.panX = -65;
+          state.panY = 25;
+          state.dof = 18.0;  // Intense creamy blur
+          state.focalPosX = 0.38;
+          state.focalPosY = 0.42;
+          state.focalBand = 18;
+          state.tiltAngle = 35;
+          state.chrome = 'none';
+          break;
+        case 'dramatic':
+          state.rotX = 30;
+          state.rotY = -34;
+          state.rotZ = 12;
+          state.scale = 145;
+          state.fov = 36;
+          state.panX = -80;
+          state.panY = 35;
+          state.dof = 24.0;
+          state.focalPosX = 0.32;
+          state.focalPosY = 0.38;
+          state.focalBand = 15;
+          state.tiltAngle = 40;
+          break;
+        case 'isometric':
+          state.rotX = 26;
+          state.rotY = -35;
+          state.rotZ = 0;
+          state.scale = 115;
+          state.fov = 18;
+          state.panX = 0;
+          state.panY = 10;
+          state.dof = 8.0;
+          state.focalPosX = 0.5;
+          state.focalPosY = 0.5;
+          state.focalBand = 30;
+          state.tiltAngle = 30;
+          break;
+        case 'frontDesk':
+          state.rotX = 12;
+          state.rotY = -8;
+          state.rotZ = 2;
+          state.scale = 120;
+          state.fov = 30;
+          state.panX = 0;
+          state.panY = 10;
+          state.dof = 10.0;
+          state.focalPosX = 0.5;
+          state.focalPosY = 0.45;
+          state.focalBand = 25;
+          state.tiltAngle = 10;
+          break;
+      }
+      syncUIValues();
+      updatePresetHighlight(type);
+      setChrome(state.chrome);
+      render();
+      showToast(`Applied preset`);
+    }
+
+    function resetCamera() {
+      state.rotX = 0;
+      state.rotY = 0;
+      state.rotZ = 0;
+      state.panX = 0;
+      state.panY = 0;
+      state.scale = 100;
+      state.fov = 34;
+      state.dof = 0;
+      updatePresetHighlight('');
+      syncUIValues();
+      render();
+      showToast('Camera reset to flat view');
+    }
+
+    // Mouse wheel zoom
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -4 : 4;
+      state.scale = Math.min(220, Math.max(40, state.scale + delta));
+      syncUIValues();
+      render();
+    }, { passive: false });
+
+    // Image Upload Handling
+    function handleFile(file) {
+      if (!file || !file.type.startsWith('image/')) {
+        showToast('Please select an image file');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          state.image = img;
+          updateScreenMesh();
+          render();
+          showToast('Image loaded');
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    document.getElementById('imageFileInput').addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleFile(e.target.files[0]);
+      }
+    });
+
+    // Drag & Drop
+    const overlay = document.getElementById('dropOverlay');
+    window.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (overlay) {
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
+      }
+    });
+    window.addEventListener('dragleave', (e) => {
+      if ((e.clientX <= 0 || e.clientY <= 0) && overlay) {
+        overlay.classList.add('hidden');
+        overlay.classList.remove('flex');
+      }
+    });
+    window.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (overlay) {
+        overlay.classList.add('hidden');
+        overlay.classList.remove('flex');
+      }
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    // Paste from Clipboard (Ctrl+V / Cmd+V)
+    window.addEventListener('paste', (e) => {
+      const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.indexOf('image') !== -1) {
+          const blob = item.getAsFile();
+          handleFile(blob);
+          break;
+        }
+      }
+    });
+
+    // Viewport Mouse Drag & Touch Rotation + Click-To-Focus Detection
+    let isDragging = false;
+    let startPointerX = 0;
+    let startPointerY = 0;
+    let startRotX = 0;
+    let startRotY = 0;
+    let pointerDownTime = 0;
+
+    // Helper: Map viewport pointer coordinates to canvas normalized UV [0..1]
+    function getCanvasNormalizedUV(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const canvasAspect = RENDER_W / RENDER_H;
+      const elemAspect = rect.width / rect.height;
+      let actualW, actualH, offsetX, offsetY;
+
+      if (elemAspect > canvasAspect) {
+        actualH = rect.height;
+        actualW = actualH * canvasAspect;
+        offsetX = (rect.width - actualW) / 2;
+        offsetY = 0;
+      } else {
+        actualW = rect.width;
+        actualH = actualW / canvasAspect;
+        offsetX = 0;
+        offsetY = (rect.height - actualH) / 2;
+      }
+
+      const clickX = clientX - rect.left - offsetX;
+      const clickY = clientY - rect.top - offsetY;
+
+      const u = Math.max(0, Math.min(1, clickX / actualW));
+      const v = Math.max(0, Math.min(1, 1.0 - (clickY / actualH))); // WebGL bottom-to-top UV
+
+      return { u, v };
+    }
+
+    // Focus Reticle Indicator Trigger
+    function triggerFocusReticle(clientX, clientY) {
+      const reticle = document.getElementById('focusReticle');
+      const container = document.getElementById('viewportContainer');
+      const containerRect = container.getBoundingClientRect();
+
+      const posX = clientX - containerRect.left;
+      const posY = clientY - containerRect.top;
+
+      reticle.style.left = `${posX}px`;
+      reticle.style.top = `${posY}px`;
+      reticle.classList.remove('hidden');
+
+      // Restart pulse animation
+      const ring = reticle.querySelector('.focus-reticle');
+      ring.style.animation = 'none';
+      void ring.offsetWidth; // trigger reflow
+      ring.style.animation = 'focusPulse 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+
+      clearTimeout(reticle._timer);
+      reticle._timer = setTimeout(() => {
+        reticle.classList.add('hidden');
+      }, 1400);
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startPointerX = e.clientX;
+      startPointerY = e.clientY;
+      startRotX = state.rotX;
+      startRotY = state.rotY;
+      pointerDownTime = Date.now();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - startPointerX;
+      const dy = e.clientY - startPointerY;
+
+      // Only treat as drag-rotate if moved past threshold
+      if (Math.hypot(dx, dy) > 4) {
+        state.rotY = Math.min(50, Math.max(-50, Number((startRotY + dx * 0.22).toFixed(1))));
+        state.rotX = Math.min(50, Math.max(-50, Number((startRotX - dy * 0.22).toFixed(1))));
+        syncUIValues();
+        render();
+      }
+    });
+
+    window.addEventListener('mouseup', (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+
+      const dx = e.clientX - startPointerX;
+      const dy = e.clientY - startPointerY;
+      const elapsed = Date.now() - pointerDownTime;
+
+      // Click detected (Not dragged)
+      if (Math.hypot(dx, dy) < 5 && elapsed < 400) {
+        const { u, v } = getCanvasNormalizedUV(e.clientX, e.clientY);
+        state.focalPosX = parseFloat(u.toFixed(3));
+        state.focalPosY = parseFloat(v.toFixed(3));
+
+        triggerFocusReticle(e.clientX, e.clientY);
+        syncUIValues();
+        render();
+        showToast(`Focus locked at (${Math.round(u * 100)}%, ${Math.round(v * 100)}%)`);
+      }
+    });
+
+    // Touch support (Drag to tilt or Tap to focus)
+    canvas.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        isDragging = true;
+        startPointerX = e.touches[0].clientX;
+        startPointerY = e.touches[0].clientY;
+        startRotX = state.rotX;
+        startRotY = state.rotY;
+        pointerDownTime = Date.now();
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!isDragging || e.touches.length !== 1) return;
+      const dx = e.touches[0].clientX - startPointerX;
+      const dy = e.touches[0].clientY - startPointerY;
+
+      if (Math.hypot(dx, dy) > 5) {
+        state.rotY = Math.min(50, Math.max(-50, Number((startRotY + dx * 0.28).toFixed(1))));
+        state.rotX = Math.min(50, Math.max(-50, Number((startRotX - dy * 0.28).toFixed(1))));
+        syncUIValues();
+        render();
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+
+      if (e.changedTouches && e.changedTouches.length === 1) {
+        const touch = e.changedTouches[0];
+        const dx = touch.clientX - startPointerX;
+        const dy = touch.clientY - startPointerY;
+        const elapsed = Date.now() - pointerDownTime;
+
+        if (Math.hypot(dx, dy) < 6 && elapsed < 400) {
+          const { u, v } = getCanvasNormalizedUV(touch.clientX, touch.clientY);
+          state.focalPosX = parseFloat(u.toFixed(3));
+          state.focalPosY = parseFloat(v.toFixed(3));
+
+          triggerFocusReticle(touch.clientX, touch.clientY);
+          syncUIValues();
+          render();
+          showToast(`Focus locked at (${Math.round(u * 100)}%, ${Math.round(v * 100)}%)`);
+        }
+      }
+    });
+
+    // Export Dropdown
+    function toggleExportMenu() {
+      document.getElementById('exportDropdown').classList.toggle('hidden');
+    }
+
+    window.addEventListener('click', (e) => {
+      const wrapper = document.getElementById('exportMenuWrapper');
+      if (!wrapper.contains(e.target)) {
+        document.getElementById('exportDropdown').classList.add('hidden');
+      }
+    });
+
+    // High-Resolution Export Engine
+    function downloadRender(multiplier = 1) {
+      document.getElementById('exportDropdown').classList.add('hidden');
+      
+      const targetW = RENDER_W * multiplier;
+      const targetH = RENDER_H * multiplier;
+
+      // Temporary offscreen render target resize
+      const hiResTarget = new THREE.WebGLRenderTarget(targetW, targetH, {
+        minFilter: THREE.LinearFilter,
+        magFilter: THREE.LinearFilter,
+        format: THREE.RGBAFormat
+      });
+
+      renderer.setSize(targetW, targetH, false);
+      postMaterial.uniforms.uResolution.value.set(targetW, targetH);
+
+      // Render Pass 1
+      renderer.setRenderTarget(hiResTarget);
+      renderer.setClearColor(0x000000, 0);
+      renderer.clear();
+      renderer.render(scene, camera);
+
+      // Render Pass 2
+      renderer.setRenderTarget(null);
+      postMaterial.uniforms.tDiffuse.value = hiResTarget.texture;
+      renderer.render(postScene, postCamera);
+
+      // Download file
+      const dataURL = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `fancy-screenshot-${Date.now()}-${multiplier}x.png`;
+      link.href = dataURL;
+      link.click();
+
+      // Clean up & restore viewport resolution
+      hiResTarget.dispose();
+      renderer.setSize(RENDER_W, RENDER_H, false);
+      postMaterial.uniforms.uResolution.value.set(RENDER_W, RENDER_H);
+      render();
+
+      showToast(`Exported ${multiplier}x Fancy Screenshot PNG`);
+    }
+
+    // Copy to Clipboard
+    function copyToClipboard() {
+      canvas.toBlob((blob) => {
+        try {
+          if (navigator.clipboard && navigator.clipboard.write) {
+            const item = new ClipboardItem({ 'image/png': blob });
+            navigator.clipboard.write([item]).then(() => {
+              showToast('Image copied to clipboard!');
+            }).catch(() => fallbackCopy());
+          } else {
+            fallbackCopy();
+          }
+        } catch (e) {
+          fallbackCopy();
+        }
+      });
+    }
+
+    function fallbackCopy() {
+      const dummy = document.createElement('textarea');
+      document.body.appendChild(dummy);
+      dummy.value = canvas.toDataURL('image/png');
+      dummy.select();
+      document.execCommand('copy');
+      document.body.removeChild(dummy);
+      showToast('Image Data copied to clipboard');
+    }
+
+    // Toast Notification helper
+    let toastTimeout = null;
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').innerText = msg;
+      toast.classList.remove('opacity-0', '-translate-y-16');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.add('opacity-0', '-translate-y-16');
+        toast.classList.remove('opacity-100', 'translate-y-0');
+      }, 2500);
+    }
+
+    // Initialize App
+    window.onload = () => {
+      lucide.createIcons();
+      generateDefaultScreenshot();
+    };
+  </script>
+</body>
+</html>
