@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>tools — simson.io</title>
+<meta name="description" content="Small tools to do specific tasks.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #333333;
+    --muted: #666666;
+    --faint: #767676;
+    --line: #E8E8E8;
+    --line-strong: #D6D6D6;
+    --soft: #FAFAFA;
+    --softer: #FCFCFC;
+    --accent: #DC3522;
+    --accent-ink: #B32A1A;
+    --accent-bg: #FCEFED;
+    --accent-line: #E9B4AC;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: #FFFFFF;
+    color: var(--ink);
+    font-family: 'Roboto', sans-serif;
+    font-weight: 300;
+    font-size: 16px;
+    line-height: 1.5;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  body.tool-open { height: 100vh; height: 100dvh; overflow: hidden; }
+  button { font: inherit; color: inherit; }
+  [hidden] { display: none !important; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  body:focus { outline: none; }
+
+  kbd {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 11px;
+    line-height: 1;
+    padding: 3px 5px;
+    min-width: 10px;
+    text-align: center;
+    border: 1px solid var(--line-strong);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    background: var(--soft);
+    color: var(--ink);
+    flex-shrink: 0;
+  }
+
+  /* ---------- navbar ---------- */
+  header { border-bottom: 1px solid var(--line); background: #FFFFFF; flex-shrink: 0; }
+  .nav {
+    padding: 8px 12px 8px 16px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+  }
+  .crumbs {
+    flex: 1 1 0; min-width: 0; min-height: 44px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 20px;
+  }
+  .crumbs-path { display: flex; align-items: center; min-width: 0; white-space: nowrap; }
+  .crumbs a { color: var(--ink); text-decoration: none; flex-shrink: 0; }
+  .crumbs a:hover { color: var(--accent-ink); }
+  .slash { color: var(--accent); flex-shrink: 0; }
+  .crumb-cur { font-weight: 400; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .icon-btn {
+    height: 44px; padding: 0 8px;
+    display: flex; align-items: center; gap: 4px;
+    border: 0; border-radius: 6px; background: transparent;
+    color: var(--ink); cursor: pointer; text-decoration: none;
+    font-size: 13px; flex-shrink: 0;
+  }
+  .icon-btn:hover { background: var(--soft); }
+  #rail-toggle { margin-left: -8px; gap: 6px; }
+  .search-btn {
+    flex: 0 1 440px; min-width: 0; height: 42px;
+    padding: 0 10px 0 12px;
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid var(--line-strong); border-radius: 6px;
+    background: var(--soft); color: var(--faint);
+    cursor: text; text-align: left;
+  }
+  .search-btn:hover { border-color: #BDBDBD; }
+  .search-btn span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .search-btn kbd { background: #FFFFFF; padding: 3px 6px; }
+  .nav-right {
+    flex: 1 1 0; min-width: max-content;
+    display: flex; justify-content: flex-end; align-items: center; gap: 2px;
+  }
+  .tool-actions { display: flex; align-items: center; gap: 2px; }
+  .divider { width: 1px; height: 24px; background: var(--line); margin: 0 6px; }
+  .copied { color: var(--accent-ink); }
+  .gh { width: 44px; justify-content: center; padding: 0; }
+
+  /* ---------- landing ---------- */
+  #home {
+    width: 100%; max-width: 1040px; margin: 0 auto;
+    padding: 40px 16px 64px;
+    display: flex; flex-direction: column; gap: 24px;
+  }
+  .intro { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+  .intro h1 { margin: 0; font-size: 40px; font-weight: 300; line-height: 1.2; }
+  .intro p { margin: 0; color: var(--muted); }
+  .hints {
+    margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px;
+    font-size: 13px; color: var(--muted);
+  }
+  .hint { display: flex; align-items: center; gap: 4px; }
+  .link-btn {
+    display: flex; align-items: center; gap: 4px;
+    border: 0; background: transparent; padding: 0;
+    font-size: 13px; color: var(--muted); cursor: pointer; min-height: 32px;
+  }
+  .link-btn:hover { color: var(--ink); }
+  .tag-cloud { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; }
+  .tag-btn {
+    border: 0; background: transparent; padding: 0; min-height: 32px;
+    font-size: 14px; color: var(--accent); cursor: pointer;
+  }
+  .tag-btn:hover { text-decoration: underline; }
+  .tag-btn .n { color: var(--faint); font-size: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+  .tile {
+    display: flex; flex-direction: column;
+    border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #FFFFFF;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .tile:hover { border-color: var(--line-strong); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+  .tile-main {
+    display: flex; flex-direction: column;
+    border: 0; padding: 0; background: transparent;
+    text-align: left; cursor: pointer;
+  }
+  .shot {
+    width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: top;
+    display: block; background: #F5F5F5; border-bottom: 1px solid var(--line);
+  }
+  .tile-text { padding: 16px 16px 6px; display: flex; flex-direction: column; gap: 6px; }
+  .tile-title { display: flex; align-items: flex-start; gap: 10px; }
+  .tile-title kbd { margin-top: 4px; }
+  .tile-name { font-size: 18px; font-weight: 400; line-height: 1.35; }
+  .tile-main:hover .tile-name { color: var(--accent-ink); }
+  .tile-desc { font-size: 14px; color: var(--muted); }
+  .tile-foot { margin-top: auto; padding: 0 8px 6px 16px; display: flex; align-items: center; gap: 8px; }
+  .tile-tags { flex: 1; display: flex; flex-wrap: wrap; gap: 0 10px; }
+  .tile-tags .tag-btn { font-size: 13px; color: var(--faint); }
+  .tile-tags .tag-btn:hover { color: var(--accent); }
+  .tile-ext {
+    width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+    color: var(--muted); border-radius: 6px;
+  }
+  .tile-ext:hover { background: var(--soft); color: var(--ink); }
+
+  /* ---------- tool view ---------- */
+  #tool { flex: 1; min-height: 0; display: flex; align-items: stretch; }
+  #rail {
+    flex: 0 0 260px; border-right: 1px solid var(--line);
+    padding: 12px 8px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  #rail.closed { flex-basis: 61px; }
+  .rail-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 8px; font-size: 12px; color: var(--faint);
+  }
+  .rail-head .count { font-family: 'Roboto Mono', monospace; }
+  .rail-head .link-btn { font-size: 12px; color: var(--faint); }
+  .rail-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+  .rail-item {
+    width: 100%; min-height: 44px; padding: 6px 8px;
+    display: flex; align-items: flex-start; gap: 10px;
+    border: 1px solid transparent; border-radius: 6px; background: transparent;
+    text-align: left; cursor: pointer;
+  }
+  .rail-item:hover { background: var(--soft); }
+  .rail-item kbd { margin-top: 3px; }
+  .rail-item .name { font-size: 15px; line-height: 1.35; padding-top: 1px; }
+  .rail-item[aria-current="page"] { background: var(--accent-bg); border-color: var(--accent); }
+  .rail-item[aria-current="page"] .name { font-weight: 400; color: var(--accent-ink); }
+  #rail.closed .rail-head { display: none; }
+  #rail.closed .rail-list { align-items: center; gap: 4px; }
+  #rail.closed .rail-item {
+    width: 44px; height: 44px; padding: 0; justify-content: center; align-items: center;
+    background: var(--soft); border-color: var(--line);
+    font-family: 'Roboto Mono', monospace; font-size: 13px;
+  }
+  #rail.closed .rail-item[aria-current="page"] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-ink); }
+  #rail.closed .rail-item .name { display: none; }
+  #rail.closed .rail-item kbd { all: unset; }
+  .stage { flex: 1 1 auto; min-width: 0; padding: 12px; display: flex; }
+  #frame {
+    flex: 1; width: 100%; height: 100%;
+    border: 1px solid var(--line); border-radius: 6px; background: #FFFFFF;
+  }
+  .fallback {
+    flex: 1; border: 1px solid var(--line); border-radius: 6px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 12px; text-align: center; padding: 24px;
+  }
+  .fallback p { margin: 0; font-size: 18px; font-weight: 400; }
+  .primary {
+    height: 44px; padding: 0 16px; display: flex; align-items: center; gap: 8px;
+    border-radius: 6px; background: var(--accent); color: #FFFFFF;
+    text-decoration: none; font-weight: 400;
+  }
+  .primary kbd { background: transparent; color: #FFFFFF; border-color: rgba(255,255,255,0.6); }
+
+  /* ---------- overlays ---------- */
+  .overlay {
+    position: fixed; inset: 0; z-index: 10;
+    display: flex; justify-content: center; align-items: flex-start;
+    padding: 72px 16px 16px;
+  }
+  .scrim { position: absolute; inset: 0; border: 0; padding: 0; background: rgba(51,51,51,0.28); cursor: default; }
+  .palette {
+    position: relative; width: 100%; max-width: 920px; max-height: calc(100vh - 88px);
+    background: #FFFFFF; border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.22);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .palette.no-preview { max-width: 640px; }
+  .search-row { display: flex; align-items: center; gap: 12px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+  #q {
+    flex: 1; min-width: 0; height: 60px; border: 0; background: transparent; outline: none;
+    font: inherit; font-size: 20px; font-weight: 300; color: var(--ink);
+  }
+  #q::placeholder { color: var(--faint); }
+  .search-row .count { font-family: 'Roboto Mono', monospace; font-size: 12px; color: var(--faint); white-space: nowrap; }
+  .palette-body { display: flex; flex-wrap: wrap; align-items: stretch; min-height: 0; overflow: hidden; }
+  .results-wrap { flex: 1 1 340px; min-width: 0; max-height: 440px; overflow-y: auto; padding: 6px; }
+  #results { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .result {
+    width: 100%; display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 12px; border: 0; border-radius: 6px; background: transparent;
+    text-align: left; cursor: pointer;
+  }
+  .result > kbd { margin-top: 4px; }
+  .result-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .result-name { font-size: 16px; font-weight: 400; }
+  .result-desc { font-size: 13px; color: var(--muted); }
+  .palette:not(.no-preview) .result-desc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .result-tags { display: flex; flex-wrap: wrap; gap: 0 10px; font-size: 12px; color: var(--faint); }
+  .result .enter { display: none; }
+  .result[aria-selected="true"] { background: var(--accent-bg); }
+  .result[aria-selected="true"] .result-name { color: var(--accent-ink); }
+  .result[aria-selected="true"] kbd { background: #FFFFFF; border-color: var(--accent-line); color: var(--accent-ink); }
+  .result[aria-selected="true"] .enter { display: inline-block; }
+  .empty { padding: 32px 16px; text-align: center; color: var(--muted); }
+  .empty .hint { display: inline-flex; }
+  #preview {
+    flex: 1 1 300px; min-width: 0; border-left: 1px solid var(--line);
+    padding: 16px; display: flex; flex-direction: column; gap: 10px; background: var(--softer);
+  }
+  #preview img {
+    width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: top;
+    background: #F0F0F0; border: 1px solid var(--line); border-radius: 4px; display: block;
+  }
+  #preview .p-name { font-size: 18px; font-weight: 400; line-height: 1.3; }
+  #preview .p-desc { font-size: 14px; color: var(--muted); }
+  #preview .p-url { font-family: 'Roboto Mono', monospace; font-size: 12px; color: var(--faint); word-break: break-all; }
+  .palette-foot {
+    border-top: 1px solid var(--line); padding: 8px 16px; background: var(--soft);
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px 16px;
+    font-size: 13px; color: var(--muted); flex-shrink: 0;
+  }
+  .palette-foot kbd { background: #FFFFFF; }
+
+  .sheet {
+    position: relative; width: 100%; max-width: 520px; margin-top: 24px;
+    background: #FFFFFF; border: 1px solid var(--line); border-radius: 8px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+    padding: 20px 24px 16px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .sheet-head { display: flex; justify-content: space-between; align-items: center; }
+  .sheet h2 { margin: 0; font-size: 20px; font-weight: 300; }
+  .sheet .link-btn { min-height: 44px; gap: 6px; }
+  .sheet dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 8px 20px; font-size: 14px; align-items: center; }
+  .sheet dt { display: flex; gap: 4px; }
+  .sheet dd { margin: 0; color: #444444; }
+
+  /* ---------- narrow screens ---------- */
+  @media (max-width: 720px) {
+    .tool-actions kbd, #rail-toggle kbd { display: none; }
+    #tool { flex-direction: column; }
+    #rail, #rail.closed { flex: 0 0 auto; border-right: 0; border-bottom: 1px solid var(--line); max-height: 40vh; }
+    #rail.closed { display: none; }
+    #preview { display: none; }
+    .palette-foot { display: none; }
+    .overlay { padding-top: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <div class="crumbs">
+      <button type="button" class="icon-btn" id="rail-toggle" data-tool-only hidden aria-label="Collapse sidebar" aria-expanded="true" title="Collapse sidebar (b)">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
+        <kbd>b</kbd>
+      </button>
+      <span class="crumbs-path">
+        <a href="https://simson.io/">simson.io</a><span class="slash" aria-hidden="true">/</span><a href="./" id="home-link" aria-current="page">tools</a>
+        <span data-tool-only hidden style="display: contents"><span class="slash" aria-hidden="true">/</span><span class="crumb-cur" id="crumb-cur" aria-current="page"></span></span>
+      </span>
+    </div>
+
+    <button type="button" class="search-btn" id="search-btn" aria-label="Search tools">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <span>Search tools</span>
+      <kbd>/</kbd>
+    </button>
+
+    <div class="nav-right">
+      <div class="tool-actions" data-tool-only hidden>
+        <button type="button" class="icon-btn" id="prev" aria-label="Previous tool" title="Previous tool ([)">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg><kbd>[</kbd>
+        </button>
+        <button type="button" class="icon-btn" id="next" aria-label="Next tool" title="Next tool (])">
+          <kbd>]</kbd><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+        <button type="button" class="icon-btn" id="copy" aria-label="Copy link" title="Copy link (c)">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg><span class="copied" id="copied" hidden>Copied</span><kbd>c</kbd>
+        </button>
+        <a class="icon-btn" id="open-ext" href="#" target="_blank" rel="noopener" aria-label="Open in new tab" title="Open in new tab (o)">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg><kbd>o</kbd>
+        </a>
+        <button type="button" class="icon-btn" id="close-tool" aria-label="Close tool, back to all tools" title="All tools (esc)">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg><kbd>esc</kbd>
+        </button>
+        <span class="divider" aria-hidden="true"></span>
+      </div>
+      <a class="icon-btn gh" href="https://github.com/jansim/tools" aria-label="Source on GitHub" title="jansim/tools on GitHub">
+        <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="2.2"/><circle cx="6" cy="19" r="2.2"/><circle cx="18" cy="7" r="2.2"/><path d="M6 7.2v9.6"/><path d="M18 9.2c0 4.5-6 3.6-11.2 8"/></svg>
+      </a>
+    </div>
+  </div>
+</header>
+
+<!-- landing: browse grid -->
+<main id="home">
+  <div class="intro">
+    <div>
+      <h1>tools</h1>
+      <p>Small tools to do specific tasks.</p>
+    </div>
+    <p class="hints">
+      <span class="hint"><kbd>/</kbd> search</span>
+      <span class="hint"><kbd>1</kbd>–<kbd>9</kbd> open</span>
+      <button type="button" class="link-btn" data-open-help><kbd>?</kbd> shortcuts</button>
+    </p>
+  </div>
+  <div class="tag-cloud" id="tag-cloud"></div>
+  <div class="grid" id="grid"></div>
+</main>
+
+<!-- tool view: rail + iframe -->
+<div id="tool" hidden>
+  <nav id="rail" aria-label="Tools">
+    <div class="rail-head">
+      <span class="count" id="rail-count"></span>
+      <button type="button" class="link-btn" data-open-help><kbd>?</kbd> shortcuts</button>
+    </div>
+    <ul class="rail-list" id="rail-list"></ul>
+  </nav>
+  <section class="stage" id="stage">
+    <iframe id="frame" title="Tool"></iframe>
+    <div class="fallback" id="fallback" hidden>
+      <p><span id="fallback-name"></span> only runs in its own tab</p>
+      <a class="primary" id="fallback-link" href="#" target="_blank" rel="noopener">Open in new tab <kbd>o</kbd></a>
+    </div>
+  </section>
+</div>
+
+<!-- search palette -->
+<div class="overlay" id="palette" hidden>
+  <button type="button" class="scrim" data-close-palette aria-label="Close search" tabindex="-1"></button>
+  <div class="palette" role="dialog" aria-modal="true" aria-label="Search tools">
+    <label class="search-row">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DC3522" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <span class="sr-only">Search tools</span>
+      <input id="q" type="text" placeholder="Search tools, or #tag" autocomplete="off" spellcheck="false" role="combobox" aria-controls="results" aria-expanded="true">
+      <span class="count" id="q-count"></span>
+    </label>
+    <div class="palette-body">
+      <div class="results-wrap">
+        <ul id="results" role="listbox" aria-label="Results"></ul>
+        <div class="empty" id="empty" hidden>Nothing matches “<span id="empty-q"></span>”. <span class="hint"><kbd>esc</kbd> clears</span></div>
+      </div>
+      <aside id="preview" aria-label="Preview">
+        <img id="p-img" alt="">
+        <span class="p-name" id="p-name"></span>
+        <span class="p-desc" id="p-desc"></span>
+        <span class="p-url" id="p-url"></span>
+      </aside>
+    </div>
+    <div class="palette-foot">
+      <span class="hint"><kbd>↑</kbd><kbd>↓</kbd> select</span>
+      <span class="hint"><kbd>↵</kbd> open</span>
+      <span class="hint"><kbd>⇧↵</kbd> new tab</span>
+      <span class="hint"><kbd>esc</kbd> close</span>
+    </div>
+  </div>
+</div>
+
+<!-- shortcut sheet -->
+<div class="overlay" id="help" hidden>
+  <button type="button" class="scrim" data-close-help aria-label="Close shortcuts" tabindex="-1"></button>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <div class="sheet-head">
+      <h2 id="help-title">Keyboard shortcuts</h2>
+      <button type="button" class="link-btn" data-close-help>close <kbd>esc</kbd></button>
+    </div>
+    <dl id="shortcuts"></dl>
+  </div>
+</div>
+
+<script>
+  // To add a tool: add its folder (with index.html + screenshot.png) and an entry here.
+  // Set `embed: false` for tools that can't run inside an iframe.
+  const TOOLS = [
+    { slug: 'color-bg-remover', name: 'Color Background Remover', embed: true,
+      desc: 'Remove solid-colour backgrounds from images, several colours at once.',
+      tags: ['images', 'png', 'transparency', 'background'],
+      extra: 'transparent image remove colour color' },
+    { slug: 'csv-to-excel', name: 'CSV to Excel Converter', embed: true,
+      desc: 'Drop in CSV files, get an Excel workbook. Combines several CSVs into one file, one sheet each.',
+      tags: ['data', 'csv', 'excel', 'convert'],
+      extra: 'xlsx spreadsheet merge combine sheets' },
+    { slug: 'fancy-screenshot', name: 'Perspective & Tilt-Shift Studio', embed: true,
+      desc: 'Screenshots to 3D-perspective images with tilt-shift blur, camera angle and FOV, high-res PNG export.',
+      tags: ['images', 'screenshot', '3d', 'png'],
+      extra: 'perspective tilt shift blur mockup export' }
+  ];
+
+  const SHORTCUTS = [
+    { keys: ['/'], label: 'Search (also ⌘K / Ctrl K), from anywhere' },
+    { keys: ['#'], label: 'In search: #png matches tags only' },
+    { keys: ['↑', '↓'], label: 'Move through results' },
+    { keys: ['↵'], label: 'Open the selected tool here' },
+    { keys: ['⇧', '↵'], label: 'Open the selected tool in a new tab' },
+    { keys: ['1', '…', '9'], label: 'Open the nth tool' },
+    { keys: ['b'], label: 'Collapse / expand the tool sidebar' },
+    { keys: ['['], label: 'Previous tool' },
+    { keys: [']'], label: 'Next tool' },
+    { keys: ['o'], label: 'Open current tool in a new tab' },
+    { keys: ['c'], label: 'Copy link to current tool' },
+    { keys: ['esc'], label: 'Clear search → close search → back to all tools' },
+    { keys: ['?'], label: 'Show this sheet' }
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const urlOf = (t) => './' + t.slug + '/';
+  const absUrlOf = (t) => new URL(urlOf(t), location.href).href;
+  const shotOf = (t) => './' + t.slug + '/screenshot.png';
+  const numOf = (i) => (i < 9 ? String(i + 1) : '·');
+  const bySlug = (slug) => TOOLS.find((t) => t.slug === slug);
+
+  function el(tag, attrs, ...children) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v == null || v === false) continue;
+      if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
+      else if (k === 'class') node.className = v;
+      else node.setAttribute(k, v === true ? '' : v);
+    }
+    for (const c of children.flat()) {
+      if (c == null || c === false) continue;
+      node.append(c instanceof Node ? c : document.createTextNode(c));
+    }
+    return node;
+  }
+
+  const ICON_EXT = '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>';
+
+  // ---------- state ----------
+  const state = {
+    active: null,       // slug of the open tool, mirrored in location.hash
+    palette: false,
+    help: false,
+    q: '',
+    sel: 0,
+    railOpen: loadRail()
+  };
+  let lastFocus = null;
+  let copiedTimer = null;
+
+  function loadRail() {
+    try { return localStorage.getItem('tools.railOpen') !== 'false'; } catch (e) { return true; }
+  }
+  function saveRail() {
+    try { localStorage.setItem('tools.railOpen', String(state.railOpen)); } catch (e) {}
+  }
+
+  function filter(q) {
+    const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    return TOOLS.filter((t) => {
+      const hay = (t.name + ' ' + t.desc + ' ' + t.tags.join(' ') + ' ' + t.extra + ' ' + t.slug).toLowerCase();
+      return words.every((w) => (w.charAt(0) === '#'
+        ? t.tags.some((g) => g.startsWith(w.slice(1)))
+        : hay.includes(w)));
+    });
+  }
+
+  // ---------- static renders ----------
+  function renderHome() {
+    const counts = {};
+    TOOLS.forEach((t) => t.tags.forEach((g) => { counts[g] = (counts[g] || 0) + 1; }));
+    const tags = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b));
+    $('tag-cloud').replaceChildren(...tags.map((g) =>
+      el('button', { type: 'button', class: 'tag-btn', onclick: () => openPalette('#' + g) },
+        '#' + g + ' ', el('span', { class: 'n' }, String(counts[g])))));
+
+    $('grid').replaceChildren(...TOOLS.map((t, i) => {
+      const ext = el('a', { class: 'tile-ext', href: urlOf(t), target: '_blank', rel: 'noopener', 'aria-label': 'Open ' + t.name + ' in a new tab' });
+      ext.innerHTML = ICON_EXT;
+      return el('article', { class: 'tile' },
+        el('button', { type: 'button', class: 'tile-main', onclick: () => openTool(t) },
+          el('img', { class: 'shot', src: shotOf(t), alt: '', loading: 'lazy' }),
+          el('span', { class: 'tile-text' },
+            el('span', { class: 'tile-title' }, el('kbd', {}, numOf(i)), el('span', { class: 'tile-name' }, t.name)),
+            el('span', { class: 'tile-desc' }, t.desc))),
+        el('div', { class: 'tile-foot' },
+          el('span', { class: 'tile-tags' }, t.tags.map((g) =>
+            el('button', { type: 'button', class: 'tag-btn', onclick: () => openPalette('#' + g) }, '#' + g))),
+          ext));
+    }));
+
+    $('rail-count').textContent = TOOLS.length + ' tools';
+    $('rail-list').replaceChildren(...TOOLS.map((t, i) =>
+      el('li', {}, el('button', {
+        type: 'button', class: 'rail-item', 'data-slug': t.slug, title: t.name,
+        onclick: () => openTool(t)
+      }, el('kbd', {}, numOf(i)), el('span', { class: 'name' }, t.name)))));
+
+    $('shortcuts').replaceChildren(...SHORTCUTS.flatMap((s) => [
+      el('dt', {}, s.keys.map((k) => el('kbd', {}, k))),
+      el('dd', {}, s.label)
+    ]));
+  }
+
+  // ---------- view updates ----------
+  function renderView() {
+    const t = state.active && bySlug(state.active);
+    const isTool = !!t;
+    document.body.classList.toggle('tool-open', isTool);
+    $('home').hidden = isTool;
+    $('tool').hidden = !isTool;
+    document.querySelectorAll('[data-tool-only]').forEach((n) => { n.hidden = !isTool; });
+    $('home-link').setAttribute('aria-current', isTool ? 'false' : 'page');
+
+    if (!isTool) {
+      document.title = 'tools — simson.io';
+      if ($('frame').getAttribute('src')) $('frame').replaceWith(el('iframe', { id: 'frame', title: 'Tool' }));
+      return;
+    }
+
+    document.title = t.name + ' — tools';
+    $('crumb-cur').textContent = t.name;
+    $('open-ext').href = urlOf(t);
+
+    $('fallback').hidden = !!t.embed;
+    if (t.embed) {
+      if ($('frame').getAttribute('src') !== urlOf(t)) loadFrame(t);
+      $('frame').hidden = false;
+    } else {
+      $('frame').hidden = true;
+      $('frame').removeAttribute('src');
+      $('fallback-name').textContent = t.name;
+      $('fallback-link').href = urlOf(t);
+    }
+
+    document.querySelectorAll('.rail-item').forEach((b) => {
+      b.setAttribute('aria-current', b.dataset.slug === t.slug ? 'page' : 'false');
+    });
+    renderRail();
+  }
+
+  // A fresh iframe per tool: changing an existing iframe's src would add
+  // entries to the browser history and break the back button.
+  function loadFrame(t) {
+    const frame = el('iframe', { id: 'frame', title: t.name, src: urlOf(t) });
+    frame.addEventListener('load', () => hookFrame(frame));
+    $('frame').replaceWith(frame);
+  }
+
+  function renderRail() {
+    $('rail').classList.toggle('closed', !state.railOpen);
+    const label = state.railOpen ? 'Collapse sidebar' : 'Expand sidebar';
+    const btn = $('rail-toggle');
+    btn.setAttribute('aria-label', label);
+    btn.setAttribute('aria-expanded', String(state.railOpen));
+    btn.title = label + ' (b)';
+  }
+
+  function renderResults() {
+    const list = filter(state.q);
+    const n = list.length;
+    state.sel = Math.min(state.sel, Math.max(0, n - 1));
+    $('q-count').textContent = state.q.trim() ? n + ' of ' + TOOLS.length : TOOLS.length + ' tools';
+    $('results').hidden = n === 0;
+    $('empty').hidden = n > 0;
+    $('empty-q').textContent = state.q;
+    $('preview').hidden = n === 0;
+    document.querySelector('.palette').classList.toggle('no-preview', n === 0);
+
+    $('results').replaceChildren(...list.map((t, i) => {
+      const isSel = i === state.sel;
+      return el('li', { role: 'presentation' },
+        el('button', {
+          type: 'button', class: 'result', role: 'option', id: 'r-' + t.slug,
+          'aria-selected': String(isSel), tabindex: '-1',
+          onclick: (e) => openTool(t, e.shiftKey || e.metaKey || e.ctrlKey),
+          onmousemove: () => { if (state.sel !== i) { state.sel = i; renderResults(); } }
+        },
+        el('kbd', {}, numOf(i)),
+        el('span', { class: 'result-text' },
+          el('span', { class: 'result-name' }, t.name),
+          el('span', { class: 'result-desc' }, t.desc),
+          el('span', { class: 'result-tags' }, t.tags.map((g) => el('span', {}, '#' + g)))),
+        el('kbd', { class: 'enter' }, '↵')));
+    }));
+
+    const sel = list[state.sel];
+    if (sel) {
+      $('q').setAttribute('aria-activedescendant', 'r-' + sel.slug);
+      const img = $('p-img');
+      if (img.getAttribute('src') !== shotOf(sel)) img.setAttribute('src', shotOf(sel));
+      $('p-name').textContent = sel.name;
+      $('p-desc').textContent = sel.desc;
+      $('p-url').textContent = absUrlOf(sel).replace(/^https?:\/\//, '');
+      const row = $('r-' + sel.slug);
+      if (row) row.scrollIntoView({ block: 'nearest' });
+    } else {
+      $('q').removeAttribute('aria-activedescendant');
+    }
+  }
+
+  // ---------- actions ----------
+  function setActive(slug) {
+    const hash = slug ? '#' + slug : '';
+    if (location.hash !== hash) {
+      if (slug) location.hash = slug;
+      else history.pushState(null, '', location.pathname + location.search);
+    }
+    state.active = slug;
+    renderView();
+  }
+
+  function openTool(t, newTab) {
+    if (!t) return;
+    if (newTab) { window.open(urlOf(t), '_blank', 'noopener'); closePalette(); return; }
+    closePalette(false);
+    setActive(t.slug);
+    $('frame').hidden ? $('fallback-link').focus() : document.body.focus();
+  }
+
+  function step(d) {
+    const i = Math.max(0, TOOLS.findIndex((t) => t.slug === state.active));
+    setActive(TOOLS[(i + d + TOOLS.length) % TOOLS.length].slug);
+  }
+
+  function goHome() {
+    closePalette(false);
+    setActive(null);
+  }
+
+  function openPalette(q) {
+    if (!state.palette) lastFocus = document.activeElement;
+    closeHelp(false);
+    state.palette = true;
+    state.sel = 0;
+    if (q !== undefined) state.q = q;
+    $('palette').hidden = false;
+    $('q').value = state.q;
+    renderResults();
+    $('q').focus();
+    $('q').select();
+  }
+
+  function closePalette(restoreFocus = true) {
+    if (!state.palette) return;
+    state.palette = false;
+    $('palette').hidden = true;
+    if (restoreFocus && lastFocus && document.contains(lastFocus)) lastFocus.focus();
+  }
+
+  function openHelp() {
+    if (!state.help) lastFocus = document.activeElement;
+    closePalette(false);
+    state.help = true;
+    $('help').hidden = false;
+    document.querySelector('#help .link-btn').focus();
+  }
+
+  function closeHelp(restoreFocus = true) {
+    if (!state.help) return;
+    state.help = false;
+    $('help').hidden = true;
+    if (restoreFocus && lastFocus && document.contains(lastFocus)) lastFocus.focus();
+  }
+
+  function toggleRail() {
+    state.railOpen = !state.railOpen;
+    saveRail();
+    renderRail();
+  }
+
+  async function copyLink() {
+    const t = bySlug(state.active);
+    if (!t) return;
+    const link = location.origin + location.pathname + '#' + t.slug;
+    try { await navigator.clipboard.writeText(link); } catch (e) { return; }
+    $('copied').hidden = false;
+    $('copy').setAttribute('aria-label', 'Link copied');
+    clearTimeout(copiedTimer);
+    copiedTimer = setTimeout(() => {
+      $('copied').hidden = true;
+      $('copy').setAttribute('aria-label', 'Copy link');
+    }, 1400);
+  }
+
+  // ---------- keyboard ----------
+  function handleKey(e) {
+    const k = e.key;
+    const mod = e.metaKey || e.ctrlKey;
+
+    if (state.help) {
+      if (k === 'Escape' || k === '?') { e.preventDefault(); closeHelp(); }
+      return;
+    }
+    if (mod && (k === 'k' || k === 'K')) {
+      e.preventDefault();
+      state.palette ? closePalette() : openPalette();
+      return;
+    }
+    if (state.palette) {
+      const list = filter(state.q);
+      const n = list.length;
+      if (k === 'ArrowDown') { e.preventDefault(); if (n) { state.sel = (state.sel + 1) % n; renderResults(); } return; }
+      if (k === 'ArrowUp') { e.preventDefault(); if (n) { state.sel = (state.sel - 1 + n) % n; renderResults(); } return; }
+      if (k === 'Enter') { e.preventDefault(); if (n) openTool(list[Math.min(state.sel, n - 1)], e.shiftKey || mod); return; }
+      if (k === 'Escape') {
+        e.preventDefault();
+        if (state.q) { state.q = ''; state.sel = 0; $('q').value = ''; renderResults(); } else closePalette();
+        return;
+      }
+      if (k === 'Tab') { e.preventDefault(); return; } // keep focus in the search field
+      return;
+    }
+
+    if (mod || e.altKey) return;
+    const target = e.target;
+    const tag = (target && target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (target && target.isContentEditable)) return;
+
+    if (k === '/') { e.preventDefault(); openPalette(''); return; }
+    if (k === '?') { e.preventDefault(); openHelp(); return; }
+    if (/^[1-9]$/.test(k)) { const t = TOOLS[+k - 1]; if (t) { e.preventDefault(); openTool(t); } return; }
+    if (!state.active) return;
+    if (k === 'Escape') { e.preventDefault(); goHome(); return; }
+    if (k === 'b') { e.preventDefault(); toggleRail(); return; }
+    if (k === '[') { e.preventDefault(); step(-1); return; }
+    if (k === ']') { e.preventDefault(); step(1); return; }
+    if (k === 'o') { e.preventDefault(); window.open(urlOf(bySlug(state.active)), '_blank', 'noopener'); return; }
+    if (k === 'c') { e.preventDefault(); copyLink(); return; }
+  }
+
+  document.addEventListener('keydown', handleKey);
+
+  // Inside a (same-origin) tool, keep only ⌘K / Ctrl K: every other key belongs to the tool.
+  function hookFrame(frame) {
+    try {
+      frame.contentWindow.document.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+          e.preventDefault();
+          openPalette();
+        }
+      });
+    } catch (err) { /* cross-origin: nothing to hook */ }
+  }
+
+  // ---------- wiring ----------
+  $('search-btn').addEventListener('click', () => openPalette());
+  $('q').addEventListener('input', (e) => { state.q = e.target.value; state.sel = 0; renderResults(); });
+  document.querySelectorAll('[data-close-palette]').forEach((b) => b.addEventListener('click', () => closePalette()));
+  document.querySelectorAll('[data-open-help]').forEach((b) => b.addEventListener('click', openHelp));
+  document.querySelectorAll('[data-close-help]').forEach((b) => b.addEventListener('click', () => closeHelp()));
+  $('rail-toggle').addEventListener('click', toggleRail);
+  $('prev').addEventListener('click', () => step(-1));
+  $('next').addEventListener('click', () => step(1));
+  $('copy').addEventListener('click', copyLink);
+  $('close-tool').addEventListener('click', goHome);
+  $('home-link').addEventListener('click', (e) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    e.preventDefault();
+    goHome();
+  });
+
+  function syncFromHash() {
+    const slug = decodeURIComponent(location.hash.slice(1));
+    state.active = bySlug(slug) ? slug : null;
+    renderView();
+  }
+  window.addEventListener('hashchange', syncFromHash);
+  window.addEventListener('popstate', syncFromHash);
+
+  document.body.tabIndex = -1;
+  renderHome();
+  syncFromHash();
+</script>
+</body>
+</html>

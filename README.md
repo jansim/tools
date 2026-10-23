@@ -10,6 +10,10 @@ A collection of small web-based tools and utilities. At least the first iteratio
 | **CSV to Excel Converter** 📊 | A simple tool for converting CSV files to Excel format with drag-and-drop functionality. Multiple CSV files can be converted at once into a single Excel file with separate sheets. | [<img src="./csv-to-excel/screenshot.png" alt="CSV to Excel Converter Screenshot" width="200">](https://simson.io/tools/csv-to-excel/) | [[🚀 Launch]](https://simson.io/tools/csv-to-excel/) [[`</>` Code]](./csv-to-excel/) |
 | **Perspective & Tilt-Shift Studio** 📸 | A tool for turning plain screenshots into fancy 3D perspective shots with tilt-shift blur, adjustable camera angle/FOV, and high-resolution PNG export. | [<img src="./fancy-screenshot/screenshot.png" alt="Perspective & Tilt-Shift Studio Screenshot" width="200">](https://simson.io/tools/fancy-screenshot/) | [[🚀 Launch]](https://simson.io/tools/fancy-screenshot/) [[`</>` Code]](./fancy-screenshot/) |
 
+## Adding a tool
+
+Each tool lives in its own folder with an `index.html` and a `screenshot.png`. To list it on the [landing page](https://simson.io/tools/), add an entry to the `TOOLS` array in the root [`index.html`](./index.html) (and a row to the table above). Tools open in an iframe on the landing page; set `embed: false` for any tool that only works in its own tab.
+
 ## License
 
 Unless otherwise specified, all tools are under MIT license.
