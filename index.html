@@ -111,7 +111,8 @@ body.is-tool .crumb-site {
 body:not(.is-tool) .tool-only { display: none !important; }
 
 /* ---------- landing ---------- */
-.home { width: 100%; max-width: 1040px; margin: 0 auto; padding: 40px 16px 64px; display: flex; flex-direction: column; gap: 24px; }
+.layout { flex: 1; min-height: 0; display: flex; }
+.home { flex: 1; min-width: 0; max-width: 1040px; margin: 0 auto; padding: 40px 16px 64px; display: flex; flex-direction: column; gap: 24px; }
 .home-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
 .home h1 { margin: 0; font-size: 40px; font-weight: 300; line-height: 1.2; }
 .home-head p { margin: 0; color: var(--muted); }
@@ -147,7 +148,6 @@ body:not(.is-tool) .tool-only { display: none !important; }
 
 /* ---------- tool view ---------- */
 body.is-tool { height: 100vh; height: 100dvh; overflow: hidden; }
-.tool-view { flex: 1; min-height: 0; display: flex; }
 .rail { flex: 0 0 240px; border-right: 1px solid var(--line); padding: 12px 8px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
 .rail.closed { flex-basis: 61px; }
 .rail-head { display: flex; justify-content: space-between; align-items: center; padding: 0 8px; font-size: 12px; color: var(--faint); }
@@ -164,6 +164,8 @@ body.is-tool { height: 100vh; height: 100dvh; overflow: hidden; }
 .rail-item:hover { background: var(--soft); }
 .rail-item[aria-current="page"] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-ink); font-weight: 400; }
 .rail.closed ul { align-items: center; gap: 4px; }
+/* on the landing page the (always collapsed) rail stays in view while the grid scrolls */
+body:not(.is-tool) .rail ul { position: sticky; top: 12px; }
 .rail-mini {
   width: 44px; height: 44px; border-radius: var(--radius); font-family: var(--mono); font-size: 13px; cursor: pointer;
   background: var(--soft); border: 1px solid var(--line); color: var(--ink);
@@ -297,6 +299,9 @@ body.is-tool .search-btn { flex-basis: 320px; }
   </div>
 </header>
 
+<div class="layout">
+<nav class="rail closed" id="rail" aria-label="Tools"></nav>
+
 <main class="home" id="home">
   <div class="home-head">
     <div>
@@ -313,15 +318,13 @@ body.is-tool .search-btn { flex-basis: 320px; }
   <div class="grid" id="grid"><p class="notice">Loading tools…</p></div>
 </main>
 
-<div class="tool-view" id="toolView" hidden>
-  <nav class="rail" id="rail" aria-label="Tools"></nav>
-  <section class="stage" id="stage">
+<section class="stage" id="stage" hidden>
     <iframe id="frame" title="Tool" allow="clipboard-read; clipboard-write; fullscreen; camera; microphone"></iframe>
     <div class="fallback" id="fallback" hidden>
       <p><span id="fallbackName"></span> only runs in its own tab</p>
       <a class="primary-btn" id="fallbackLink" href="./" target="_blank" rel="noopener">Open in new tab <kbd>o</kbd></a>
     </div>
-  </section>
+</section>
 </div>
 
 <div class="overlay" id="palette" hidden>
@@ -464,12 +467,13 @@ body.is-tool .search-btn { flex-basis: 320px; }
   /* ---------- tool view ---------- */
   function renderRail() {
     const rail = $('rail');
-    rail.classList.toggle('closed', !state.railOpen);
+    const open = state.railOpen && !!state.active; // always collapsed on the landing page
+    rail.classList.toggle('closed', !open);
     const toggle = $('railToggle');
     toggle.setAttribute('aria-expanded', String(state.railOpen));
     toggle.setAttribute('aria-label', state.railOpen ? 'Collapse sidebar' : 'Expand sidebar');
     const cur = (t) => (t.slug === state.active ? ' aria-current="page"' : '');
-    if (state.railOpen) {
+    if (open) {
       rail.innerHTML =
         '<div class="rail-head"><span class="mono">' + TOOLS.length + ' tools</span>' +
         '<button type="button" class="link-btn" data-action="help"><kbd>h</kbd> shortcuts</button></div>' +
@@ -488,8 +492,9 @@ body.is-tool .search-btn { flex-basis: 320px; }
     if (!t) state.active = null;
     document.body.classList.toggle('is-tool', !!t);
     $('home').hidden = !!t;
-    $('toolView').hidden = !t;
+    $('stage').hidden = !t;
     $('homeLink').setAttribute('aria-current', t ? 'false' : 'page');
+    renderRail();
     const frame = $('frame');
     if (!t) {
       document.title = 'tools — simson.io';
@@ -506,7 +511,6 @@ body.is-tool .search-btn { flex-basis: 320px; }
     frame.title = t.name;
     if (t.embed && frame.getAttribute('src') !== t.url) frame.setAttribute('src', t.url);
     if (!t.embed) frame.removeAttribute('src');
-    renderRail();
   }
 
   function route() {
