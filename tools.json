@@ -1,0 +1,29 @@
+[
+  {
+    "slug": "color-bg-remover",
+    "name": "Color Background Remover",
+    "description": "Remove solid-colour backgrounds from images, several colours at once.",
+    "tags": ["images", "png", "transparency", "background"],
+    "keywords": ["transparent", "remove", "colour", "color"],
+    "screenshot": "color-bg-remover/screenshot.png",
+    "added": "2025-04-14"
+  },
+  {
+    "slug": "csv-to-excel",
+    "name": "CSV to Excel Converter",
+    "description": "Drop in CSV files, get an Excel workbook. Combines several CSVs into one file, one sheet each.",
+    "tags": ["data", "csv", "excel", "convert"],
+    "keywords": ["xlsx", "spreadsheet", "merge", "combine", "sheets"],
+    "screenshot": "csv-to-excel/screenshot.png",
+    "added": "2025-06-03"
+  },
+  {
+    "slug": "fancy-screenshot",
+    "name": "Perspective & Tilt-Shift Studio",
+    "description": "Screenshots to 3D-perspective images with tilt-shift blur, camera angle and FOV, high-res PNG export.",
+    "tags": ["images", "screenshot", "3d", "png"],
+    "keywords": ["perspective", "tilt", "shift", "blur", "mockup", "export"],
+    "screenshot": "fancy-screenshot/screenshot.png",
+    "added": "2026-09-08"
+  }
+]

@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tools — simson.io</title>
+<meta name="description" content="Small tools to do specific tasks.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M20 4L12 28' stroke='%23DC3522' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!--
+  Outer chrome for simson.io/tools: landing grid, search palette, tool view (iframe).
+  The list of tools lives in tools.json. See AGENTS.md before changing anything here.
+-->
+<style>
+:root {
+  --ink: #333333;
+  --ink-2: #444444;
+  --muted: #666666;
+  --faint: #767676;
+  --line: #E8E8E8;
+  --line-strong: #D6D6D6;
+  --bg: #FFFFFF;
+  --soft: #FAFAFA;
+  --soft-2: #F5F5F5;
+  --soft-3: #FCFCFC;
+  --accent: #DC3522;
+  --accent-ink: #B32A1A;
+  --accent-bg: #FCEFED;
+  --accent-line: #E9B4AC;
+  --scrim: rgba(51, 51, 51, 0.28);
+  --radius: 6px;
+  --sans: 'Roboto', system-ui, sans-serif;
+  --mono: 'Roboto Mono', ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+a { color: var(--ink); }
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+kbd {
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 5px;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--soft);
+  color: var(--ink);
+  min-width: 10px;
+  text-align: center;
+  flex-shrink: 0;
+  font-weight: 400;
+}
+.keys { display: inline-flex; align-items: center; gap: 4px; }
+
+/* ---------- navbar ---------- */
+.nav { border-bottom: 1px solid var(--line); background: var(--bg); flex-shrink: 0; }
+.nav-inner { padding: 8px 12px 8px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.nav-left { flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 6px; font-size: 20px; min-height: 44px; }
+.crumbs { display: flex; align-items: center; min-width: 0; white-space: nowrap; }
+.crumbs a { text-decoration: none; flex-shrink: 0; }
+.crumbs a:hover { color: var(--accent-ink); }
+.slash { color: var(--accent); flex-shrink: 0; }
+.crumb-tool { font-weight: 400; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.search-btn {
+  flex: 0 1 440px; min-width: 0; height: 42px; padding: 0 10px 0 12px;
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--soft);
+  color: var(--faint); cursor: text; text-align: left;
+}
+.search-btn:hover { border-color: #BDBDBD; }
+.search-btn span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-btn kbd { background: var(--bg); padding: 3px 6px; }
+.nav-right { flex: 1 1 0; min-width: max-content; display: flex; justify-content: flex-end; align-items: center; gap: 2px; }
+.icon-btn {
+  height: 44px; padding: 0 8px; display: flex; align-items: center; gap: 4px;
+  border: 0; border-radius: var(--radius); background: transparent; color: var(--ink);
+  cursor: pointer; text-decoration: none; font-size: 13px; flex-shrink: 0;
+}
+.icon-btn:hover { background: var(--soft-2); }
+.icon-btn.square { width: 44px; justify-content: center; padding: 0; }
+.rail-toggle { margin-left: -8px; gap: 6px; }
+.copied { color: var(--accent-ink); }
+.divider { width: 1px; height: 24px; background: var(--line); margin: 0 6px; }
+body:not(.is-tool) .tool-only { display: none !important; }
+
+/* ---------- landing ---------- */
+.home { width: 100%; max-width: 1040px; margin: 0 auto; padding: 40px 16px 64px; display: flex; flex-direction: column; gap: 24px; }
+.home-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.home h1 { margin: 0; font-size: 40px; font-weight: 300; line-height: 1.2; }
+.home-head p { margin: 0; color: var(--muted); }
+.hints { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: 13px; color: var(--muted); }
+.link-btn { display: inline-flex; align-items: center; gap: 4px; border: 0; background: transparent; padding: 0; font-size: 13px; color: var(--muted); cursor: pointer; min-height: 32px; }
+.link-btn:hover { color: var(--ink); }
+.tag-cloud { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; }
+.tag-btn { border: 0; background: transparent; padding: 0; min-height: 32px; font-size: 14px; color: var(--accent); cursor: pointer; }
+.tag-btn:hover { color: var(--accent-ink); text-decoration: underline; }
+.tag-btn small { color: var(--faint); font-size: 12px; }
+.tag-btn.quiet { color: var(--faint); font-size: 13px; }
+.tag-btn.quiet:hover { color: var(--accent-ink); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+.tile { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--bg); transition: border-color .15s, box-shadow .15s; }
+.tile:hover { border-color: var(--line-strong); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+.tile-main { display: flex; flex-direction: column; border: 0; padding: 0; background: transparent; text-align: left; cursor: pointer; }
+.shot {
+  width: 100%; aspect-ratio: 16 / 10; background: var(--soft-2); display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 12px; color: var(--faint); overflow: hidden;
+}
+.shot img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+.tile .shot { border-bottom: 1px solid var(--line); }
+.tile-body { padding: 16px 16px 6px; display: flex; flex-direction: column; gap: 6px; }
+.tile-title { display: flex; align-items: flex-start; gap: 10px; }
+.tile-title kbd { margin-top: 4px; }
+.tile-name { font-size: 18px; font-weight: 400; line-height: 1.35; }
+.tile-main:hover .tile-name { color: var(--accent-ink); }
+.tile-desc { font-size: 14px; color: var(--muted); }
+.tile-foot { margin-top: auto; padding: 0 8px 6px 16px; display: flex; align-items: center; gap: 8px; }
+.tile-tags { flex: 1; display: flex; flex-wrap: wrap; gap: 0 10px; }
+.tile-foot .icon-btn { color: var(--muted); }
+.notice { color: var(--muted); }
+
+/* ---------- tool view ---------- */
+body.is-tool { height: 100vh; height: 100dvh; overflow: hidden; }
+.tool-view { flex: 1; min-height: 0; display: flex; }
+.rail { flex: 0 0 240px; border-right: 1px solid var(--line); padding: 12px 8px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+.rail.closed { flex-basis: 61px; }
+.rail-head { display: flex; justify-content: space-between; align-items: center; padding: 0 8px; font-size: 12px; color: var(--faint); }
+.rail-head .mono { font-family: var(--mono); }
+.rail-head .link-btn { font-size: 12px; color: var(--faint); }
+.rail ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.rail-item {
+  width: 100%; min-height: 44px; padding: 6px 8px; display: flex; align-items: flex-start; gap: 10px;
+  border-radius: var(--radius); text-align: left; cursor: pointer; background: transparent; border: 1px solid transparent;
+  font-size: 15px; line-height: 1.35;
+}
+.rail-item kbd { margin-top: 3px; }
+.rail-item span { padding-top: 1px; }
+.rail-item:hover { background: var(--soft); }
+.rail-item[aria-current="page"] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-ink); font-weight: 400; }
+.rail.closed ul { align-items: center; gap: 4px; }
+.rail-mini {
+  width: 44px; height: 44px; border-radius: var(--radius); font-family: var(--mono); font-size: 13px; cursor: pointer;
+  background: var(--soft); border: 1px solid var(--line); color: var(--ink);
+}
+.rail-mini:hover { border-color: var(--line-strong); }
+.rail-mini[aria-current="page"] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-ink); }
+.stage { flex: 1; min-width: 0; padding: 12px; display: flex; }
+.stage iframe { flex: 1; width: 100%; height: 100%; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
+.fallback {
+  flex: 1; border: 1px solid var(--line); border-radius: var(--radius); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 24px;
+}
+.fallback p { margin: 0; font-size: 18px; font-weight: 400; }
+.primary-btn {
+  height: 44px; padding: 0 16px; display: flex; align-items: center; gap: 8px; border-radius: var(--radius);
+  background: var(--accent); color: #FFFFFF; text-decoration: none; font-weight: 400;
+}
+.primary-btn:hover { background: var(--accent-ink); }
+.primary-btn kbd { border-color: rgba(255,255,255,0.6); background: transparent; color: #FFFFFF; }
+
+/* ---------- overlays ---------- */
+.overlay { position: fixed; inset: 0; z-index: 10; display: flex; justify-content: center; align-items: flex-start; padding: 72px 16px 16px; }
+.overlay.help { z-index: 20; padding-top: 96px; }
+.scrim { position: absolute; inset: 0; border: 0; padding: 0; background: var(--scrim); cursor: default; }
+.palette {
+  position: relative; width: 100%; max-width: 920px; max-height: calc(100vh - 88px); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.22);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.palette-input { display: flex; align-items: center; gap: 12px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+.palette-input input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 20px; font-weight: 300; color: var(--ink); height: 60px; outline: none; }
+.count { font-family: var(--mono); font-size: 12px; color: var(--faint); white-space: nowrap; }
+.palette-body { display: flex; min-height: 0; flex: 1; }
+.results { flex: 1 1 340px; min-width: 0; max-height: 440px; overflow-y: auto; padding: 6px; }
+.results ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.result { width: 100%; display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border: 0; border-radius: var(--radius); text-align: left; cursor: pointer; background: transparent; }
+.result > kbd { margin-top: 4px; }
+.result-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.result-name { font-size: 16px; font-weight: 400; }
+.result-desc { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-tags { display: flex; flex-wrap: wrap; gap: 0 10px; font-size: 12px; color: var(--faint); }
+.result .enter { visibility: hidden; }
+.result[aria-selected="true"] { background: var(--accent-bg); }
+.result[aria-selected="true"] .result-name { color: var(--accent-ink); }
+.result[aria-selected="true"] kbd { border-color: var(--accent-line); background: var(--bg); color: var(--accent-ink); }
+.result[aria-selected="true"] .enter { visibility: visible; }
+.empty { padding: 32px 16px; text-align: center; color: var(--muted); }
+.preview { flex: 1 1 300px; min-width: 0; border-left: 1px solid var(--line); padding: 16px; display: flex; flex-direction: column; gap: 10px; background: var(--soft-3); overflow-y: auto; }
+.preview .shot { border: 1px solid var(--line); border-radius: 4px; background: #F0F0F0; flex-shrink: 0; }
+.preview-name { font-size: 18px; font-weight: 400; line-height: 1.3; }
+.preview-desc { font-size: 14px; color: var(--muted); }
+.preview-url { font-family: var(--mono); font-size: 12px; color: var(--faint); word-break: break-all; }
+.palette-foot { border-top: 1px solid var(--line); padding: 8px 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px 16px; font-size: 13px; color: var(--muted); background: var(--soft); }
+.palette-foot kbd { background: var(--bg); }
+.sheet {
+  position: relative; width: 100%; max-width: 520px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.18); padding: 20px 24px 16px; display: flex; flex-direction: column; gap: 12px;
+}
+.sheet-head { display: flex; justify-content: space-between; align-items: center; }
+.sheet h2 { margin: 0; font-size: 20px; font-weight: 300; }
+.sheet .link-btn { min-height: 44px; gap: 6px; }
+.sheet dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 8px 20px; font-size: 14px; align-items: center; }
+.sheet dt { display: flex; gap: 4px; }
+.sheet dd { margin: 0; color: var(--ink-2); }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media (hover: none) and (pointer: coarse) {
+  .hints, .search-btn kbd { display: none; }
+}
+@media (max-width: 760px) {
+  .preview { display: none; }
+  .palette { max-width: 640px; }
+  .palette-foot { display: none; }
+}
+@media (max-width: 720px) {
+  .rail, .rail-toggle, .divider, .nav-right .kbd-hint { display: none !important; }
+  .nav-left { flex-basis: 100%; order: -1; }
+  .search-btn { flex: 1 1 200px; }
+  .nav-right { flex: 0 0 auto; }
+  .stage { padding: 8px; }
+}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <div class="nav-left">
+      <button type="button" class="icon-btn rail-toggle tool-only" id="railToggle" aria-expanded="true" aria-label="Collapse sidebar" title="Toggle sidebar (b)">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
+        <kbd>b</kbd>
+      </button>
+      <span class="crumbs">
+        <a href="https://simson.io/">simson.io</a><span class="slash" aria-hidden="true">/</span><a href="./" id="homeLink" aria-current="page">tools</a>
+        <span class="slash tool-only" aria-hidden="true">/</span><span class="crumb-tool tool-only" id="crumbTool" aria-current="page"></span>
+      </span>
+    </div>
+
+    <button type="button" class="search-btn" id="searchBtn" aria-label="Search tools">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <span>Search tools</span>
+      <kbd class="mod-p"></kbd>
+    </button>
+
+    <div class="nav-right">
+      <button type="button" class="icon-btn tool-only" id="prevBtn" aria-label="Previous tool" title="Previous tool (,)">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg><kbd class="kbd-hint">,</kbd>
+      </button>
+      <button type="button" class="icon-btn tool-only" id="nextBtn" aria-label="Next tool" title="Next tool (.)">
+        <kbd class="kbd-hint">.</kbd><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+      <button type="button" class="icon-btn tool-only" id="copyBtn" aria-label="Copy link" title="Copy link (c)">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg><span class="copied" id="copiedLabel" hidden>Copied</span><kbd class="kbd-hint">c</kbd>
+      </button>
+      <a class="icon-btn tool-only" id="openBtn" href="./" target="_blank" rel="noopener" aria-label="Open in new tab" title="Open in new tab (o)">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg><kbd class="kbd-hint">o</kbd>
+      </a>
+      <button type="button" class="icon-btn tool-only" id="closeBtn" aria-label="Close tool, back to all tools" title="All tools (esc)">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg><kbd class="kbd-hint">esc</kbd>
+      </button>
+      <span class="divider tool-only" aria-hidden="true"></span>
+      <a class="icon-btn square" href="https://github.com/jansim/tools" aria-label="Source on GitHub" title="jansim/tools on GitHub">
+        <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="2.2"/><circle cx="6" cy="19" r="2.2"/><circle cx="18" cy="7" r="2.2"/><path d="M6 7.2v9.6"/><path d="M18 9.2c0 4.5-6 3.6-11.2 8"/></svg>
+      </a>
+    </div>
+  </div>
+</header>
+
+<main class="home" id="home">
+  <div class="home-head">
+    <div>
+      <h1>tools</h1>
+      <p>Small tools to do specific tasks.</p>
+    </div>
+    <p class="hints">
+      <span class="keys"><kbd class="mod-p"></kbd> search</span>
+      <span class="keys"><kbd>1</kbd>–<kbd>9</kbd> open</span>
+      <button type="button" class="link-btn" data-action="help"><kbd>h</kbd> shortcuts</button>
+    </p>
+  </div>
+  <div class="tag-cloud" id="tagCloud"></div>
+  <div class="grid" id="grid"><p class="notice">Loading tools…</p></div>
+</main>
+
+<div class="tool-view" id="toolView" hidden>
+  <nav class="rail" id="rail" aria-label="Tools"></nav>
+  <section class="stage" id="stage">
+    <iframe id="frame" title="Tool" allow="clipboard-read; clipboard-write; fullscreen; camera; microphone"></iframe>
+    <div class="fallback" id="fallback" hidden>
+      <p><span id="fallbackName"></span> only runs in its own tab</p>
+      <a class="primary-btn" id="fallbackLink" href="./" target="_blank" rel="noopener">Open in new tab <kbd>o</kbd></a>
+    </div>
+  </section>
+</div>
+
+<div class="overlay" id="palette" hidden>
+  <button type="button" class="scrim" data-action="close-palette" aria-label="Close search" tabindex="-1"></button>
+  <div class="palette" role="dialog" aria-modal="true" aria-label="Search tools">
+    <label class="palette-input">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DC3522" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <span class="sr-only">Search tools</span>
+      <input id="searchInput" type="text" placeholder="Search tools, or #tag" autocomplete="off" spellcheck="false" aria-controls="results">
+      <span class="count" id="count"></span>
+    </label>
+    <div class="palette-body">
+      <div class="results" id="results"></div>
+      <aside class="preview" id="preview" aria-label="Preview"></aside>
+    </div>
+    <div class="palette-foot">
+      <span class="keys"><kbd>↑</kbd><kbd>↓</kbd> select</span>
+      <span class="keys"><kbd>↵</kbd> open</span>
+      <span class="keys"><kbd>⇧↵</kbd> new tab</span>
+      <span class="keys"><kbd>esc</kbd> close</span>
+    </div>
+  </div>
+</div>
+
+<div class="overlay help" id="help" hidden>
+  <button type="button" class="scrim" data-action="close-help" aria-label="Close shortcuts" tabindex="-1"></button>
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+    <div class="sheet-head">
+      <h2>Keyboard shortcuts</h2>
+      <button type="button" class="link-btn" data-action="close-help">close <kbd>esc</kbd></button>
+    </div>
+    <dl id="shortcuts"></dl>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const REPO = 'https://github.com/jansim/tools';
+  const IS_MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
+  const MOD = IS_MAC ? '⌘' : 'Ctrl';
+  const SHORTCUTS = [
+    [[MOD, 'P'], 'Search, from anywhere (' + MOD + ' K also works)'],
+    [['/'], 'Search'],
+    [['#'], 'In search: #png matches tags only'],
+    [['↑', '↓'], 'Move through results'],
+    [['↵'], 'Open the selected tool here'],
+    [['⇧', '↵'], 'Open the selected tool in a new tab'],
+    [['1', '…', '9'], 'Open the nth tool'],
+    [['b'], 'Collapse / expand the tool sidebar'],
+    [[','], 'Previous tool'],
+    [['.'], 'Next tool'],
+    [['o'], 'Open current tool in a new tab'],
+    [['c'], 'Copy link to current tool'],
+    [['esc'], 'Clear search → close search → back to all tools'],
+    [['h'], 'Show this sheet']
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const kbd = (k) => '<kbd>' + esc(k) + '</kbd>';
+  const isExternal = (u) => /^[a-z][a-z0-9+.-]*:/i.test(u);
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  };
+
+  let TOOLS = [];
+  const state = {
+    active: null,
+    q: '',
+    sel: 0,
+    railOpen: store.get('tools.rail') !== 'closed',
+    lastFocus: null
+  };
+
+  // Fill in defaults so the rest of the code can rely on every field.
+  function normalize(t) {
+    const local = !t.url;
+    return {
+      slug: t.slug,
+      name: t.name || t.slug,
+      description: t.description || '',
+      tags: Array.isArray(t.tags) ? t.tags : [],
+      keywords: Array.isArray(t.keywords) ? t.keywords : [],
+      url: t.url || ('./' + t.slug + '/'),
+      screenshot: t.screenshot || null,
+      embed: t.embed !== false,
+      source: t.source || (local ? REPO + '/tree/main/' + t.slug : null),
+      external: !local
+    };
+  }
+
+  const num = (i) => (i < 9 ? String(i + 1) : '·');
+  const absUrl = (t) => new URL(t.url, location.href).href;
+  const shareUrl = (t) => location.origin + location.pathname + '#' + t.slug;
+  const shot = (t) => t.screenshot
+    ? '<span class="shot"><img src="' + esc(t.screenshot) + '" alt="" loading="lazy"></span>'
+    : '<span class="shot">' + esc(t.slug) + '</span>';
+
+  function filter(q) {
+    const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    return TOOLS.filter((t) => {
+      const hay = [t.name, t.description, t.slug, ...t.tags, ...t.keywords].join(' ').toLowerCase();
+      return words.every((w) => w[0] === '#'
+        ? t.tags.some((g) => g.toLowerCase().startsWith(w.slice(1)))
+        : hay.includes(w));
+    });
+  }
+
+  /* ---------- landing ---------- */
+  function renderHome() {
+    const counts = {};
+    TOOLS.forEach((t) => t.tags.forEach((g) => { counts[g] = (counts[g] || 0) + 1; }));
+    $('tagCloud').innerHTML = Object.keys(counts)
+      .sort((a, b) => counts[b] - counts[a] || a.localeCompare(b))
+      .map((g) => '<button type="button" class="tag-btn" data-tag="' + esc(g) + '">#' + esc(g) + ' <small>' + counts[g] + '</small></button>')
+      .join('');
+
+    $('grid').innerHTML = TOOLS.map((t, i) =>
+      '<article class="tile">' +
+        '<button type="button" class="tile-main" data-open="' + esc(t.slug) + '">' +
+          shot(t) +
+          '<span class="tile-body">' +
+            '<span class="tile-title">' + kbd(num(i)) + '<span class="tile-name">' + esc(t.name) + '</span></span>' +
+            '<span class="tile-desc">' + esc(t.description) + '</span>' +
+          '</span>' +
+        '</button>' +
+        '<div class="tile-foot">' +
+          '<span class="tile-tags">' + t.tags.map((g) => '<button type="button" class="tag-btn quiet" data-tag="' + esc(g) + '">#' + esc(g) + '</button>').join('') + '</span>' +
+          '<a class="icon-btn square" href="' + esc(t.url) + '" target="_blank" rel="noopener" aria-label="Open ' + esc(t.name) + ' in a new tab">' +
+            '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>' +
+          '</a>' +
+        '</div>' +
+      '</article>'
+    ).join('');
+  }
+
+  /* ---------- tool view ---------- */
+  function renderRail() {
+    const rail = $('rail');
+    rail.classList.toggle('closed', !state.railOpen);
+    const toggle = $('railToggle');
+    toggle.setAttribute('aria-expanded', String(state.railOpen));
+    toggle.setAttribute('aria-label', state.railOpen ? 'Collapse sidebar' : 'Expand sidebar');
+    const cur = (t) => (t.slug === state.active ? ' aria-current="page"' : '');
+    if (state.railOpen) {
+      rail.innerHTML =
+        '<div class="rail-head"><span class="mono">' + TOOLS.length + ' tools</span>' +
+        '<button type="button" class="link-btn" data-action="help"><kbd>h</kbd> shortcuts</button></div>' +
+        '<ul>' + TOOLS.map((t, i) =>
+          '<li><button type="button" class="rail-item" data-open="' + esc(t.slug) + '"' + cur(t) + '>' + kbd(num(i)) + '<span>' + esc(t.name) + '</span></button></li>'
+        ).join('') + '</ul>';
+    } else {
+      rail.innerHTML = '<ul>' + TOOLS.map((t, i) =>
+        '<li><button type="button" class="rail-mini" data-open="' + esc(t.slug) + '" aria-label="' + esc(t.name) + '" title="' + esc(t.name) + '"' + cur(t) + '>' + num(i) + '</button></li>'
+      ).join('') + '</ul>';
+    }
+  }
+
+  function render() {
+    const t = TOOLS.find((x) => x.slug === state.active);
+    if (!t) state.active = null;
+    document.body.classList.toggle('is-tool', !!t);
+    $('home').hidden = !!t;
+    $('toolView').hidden = !t;
+    $('homeLink').setAttribute('aria-current', t ? 'false' : 'page');
+    const frame = $('frame');
+    if (!t) {
+      document.title = 'tools — simson.io';
+      if (frame.getAttribute('src')) frame.removeAttribute('src');
+      return;
+    }
+    document.title = t.name + ' — tools';
+    $('crumbTool').textContent = t.name;
+    $('openBtn').href = t.url;
+    $('fallbackLink').href = t.url;
+    $('fallbackName').textContent = t.name;
+    frame.hidden = !t.embed;
+    $('fallback').hidden = t.embed;
+    frame.title = t.name;
+    if (t.embed && frame.getAttribute('src') !== t.url) frame.setAttribute('src', t.url);
+    if (!t.embed) frame.removeAttribute('src');
+    renderRail();
+  }
+
+  function route() {
+    state.active = decodeURIComponent(location.hash.slice(1)) || null;
+    render();
+  }
+
+  function openTool(t, newTab) {
+    if (!t) return;
+    if (newTab) { window.open(t.url, '_blank', 'noopener'); return; }
+    closePalette(false);
+    if (location.hash.slice(1) !== t.slug) location.hash = t.slug; else render();
+  }
+
+  function goHome() {
+    history.pushState(null, '', location.pathname + location.search);
+    route();
+  }
+
+  function step(d) {
+    const i = Math.max(0, TOOLS.findIndex((t) => t.slug === state.active));
+    openTool(TOOLS[(i + d + TOOLS.length) % TOOLS.length]);
+  }
+
+  let copyTimer;
+  function copyLink() {
+    const t = TOOLS.find((x) => x.slug === state.active);
+    if (!t) return;
+    try { navigator.clipboard.writeText(shareUrl(t)); } catch (e) {}
+    $('copiedLabel').hidden = false;
+    $('copyBtn').setAttribute('aria-label', 'Link copied');
+    clearTimeout(copyTimer);
+    copyTimer = setTimeout(() => {
+      $('copiedLabel').hidden = true;
+      $('copyBtn').setAttribute('aria-label', 'Copy link');
+    }, 1400);
+  }
+
+  function toggleRail() {
+    state.railOpen = !state.railOpen;
+    store.set('tools.rail', state.railOpen ? 'open' : 'closed');
+    renderRail();
+  }
+
+  /* ---------- search palette ---------- */
+  const paletteOpen = () => !$('palette').hidden;
+  const helpOpen = () => !$('help').hidden;
+
+  function openPalette(q) {
+    closeHelp(false);
+    if (!paletteOpen()) state.lastFocus = document.activeElement;
+    if (q !== undefined) state.q = q;
+    state.sel = 0;
+    $('palette').hidden = false;
+    const input = $('searchInput');
+    input.value = state.q;
+    renderResults();
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  }
+
+  function closePalette(restore = true) {
+    if (!paletteOpen()) return;
+    $('palette').hidden = true;
+    if (restore && state.lastFocus && state.lastFocus.focus) state.lastFocus.focus();
+  }
+
+  function renderResults() {
+    const list = filter(state.q);
+    const n = list.length;
+    state.sel = Math.min(state.sel, Math.max(0, n - 1));
+    $('count').textContent = state.q.trim() ? n + ' of ' + TOOLS.length : TOOLS.length + ' tools';
+    if (!n) {
+      $('results').innerHTML = '<div class="empty">Nothing matches “' + esc(state.q) + '”. <span class="keys">' + kbd('esc') + ' clears</span></div>';
+      $('preview').hidden = true;
+      return;
+    }
+    $('results').innerHTML = '<ul id="resultList" role="listbox" aria-label="Results">' + list.map((t, i) =>
+      '<li><button type="button" class="result" role="option" data-open="' + esc(t.slug) + '" data-i="' + i + '" aria-selected="' + (i === state.sel) + '">' +
+        kbd(num(i)) +
+        '<span class="result-text">' +
+          '<span class="result-name">' + esc(t.name) + '</span>' +
+          '<span class="result-desc">' + esc(t.description) + '</span>' +
+          '<span class="result-tags">' + t.tags.map((g) => '<span>#' + esc(g) + '</span>').join('') + '</span>' +
+        '</span>' +
+        '<kbd class="enter">↵</kbd>' +
+      '</button></li>'
+    ).join('') + '</ul>';
+    renderPreview(list[state.sel]);
+  }
+
+  function renderPreview(t) {
+    const p = $('preview');
+    p.hidden = false;
+    p.innerHTML = shot(t) +
+      '<span class="preview-name">' + esc(t.name) + '</span>' +
+      '<span class="preview-desc">' + esc(t.description) + '</span>' +
+      '<span class="preview-url">' + esc(t.external ? absUrl(t) : (location.host + location.pathname + '#' + t.slug)) + '</span>';
+  }
+
+  function select(i) {
+    const items = $('results').querySelectorAll('.result');
+    if (!items.length) return;
+    state.sel = (i + items.length) % items.length;
+    items.forEach((el, j) => el.setAttribute('aria-selected', String(j === state.sel)));
+    items[state.sel].scrollIntoView({ block: 'nearest' });
+    renderPreview(filter(state.q)[state.sel]);
+  }
+
+  /* ---------- shortcut sheet ---------- */
+  function openHelp() {
+    closePalette(false);
+    $('help').hidden = false;
+    $('help').querySelector('.link-btn').focus();
+  }
+  function closeHelp(restore = true) {
+    if (!helpOpen()) return;
+    $('help').hidden = true;
+    if (restore) document.body.focus();
+  }
+
+  /* ---------- keyboard ---------- */
+  function onKey(e) {
+    const k = e.key;
+    const mod = e.metaKey || e.ctrlKey;
+    if (helpOpen()) {
+      if (k === 'Escape' || k === 'h' || k === '?') { e.preventDefault(); closeHelp(); }
+      return;
+    }
+    if (mod && /^[pk]$/i.test(k)) { e.preventDefault(); paletteOpen() ? closePalette() : openPalette(); return; }
+    if (paletteOpen()) {
+      const list = filter(state.q);
+      if (k === 'ArrowDown') { e.preventDefault(); select(state.sel + 1); return; }
+      if (k === 'ArrowUp') { e.preventDefault(); select(state.sel - 1); return; }
+      if (k === 'Enter') { e.preventDefault(); if (list.length) openTool(list[state.sel], e.shiftKey || mod); return; }
+      if (k === 'Escape') {
+        e.preventDefault();
+        if (state.q) { state.q = ''; $('searchInput').value = ''; state.sel = 0; renderResults(); } else closePalette();
+      }
+      return;
+    }
+    if (mod || e.altKey) return;
+    const tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target && e.target.isContentEditable)) return;
+    if (k === '/') { e.preventDefault(); openPalette(''); return; }
+    if (k === 'h' || k === '?') { e.preventDefault(); openHelp(); return; }
+    if (/^[1-9]$/.test(k)) { const t = TOOLS[+k - 1]; if (t) { e.preventDefault(); openTool(t); } return; }
+    if (!state.active) return;
+    const t = TOOLS.find((x) => x.slug === state.active);
+    if (k === 'Escape') { e.preventDefault(); goHome(); return; }
+    if (k === 'b') { e.preventDefault(); toggleRail(); return; }
+    if (k === ',') { e.preventDefault(); step(-1); return; }
+    if (k === '.') { e.preventDefault(); step(1); return; }
+    if (k === 'o') { e.preventDefault(); openTool(t, true); return; }
+    if (k === 'c') { e.preventDefault(); copyLink(); return; }
+  }
+
+  // Same-origin tools: let ⌘P / ⌘K open search even while the iframe has focus.
+  $('frame').addEventListener('load', () => {
+    try {
+      $('frame').contentWindow.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && /^[pk]$/i.test(e.key)) { e.preventDefault(); openPalette(); }
+      });
+    } catch (err) { /* cross-origin tool: shortcuts work once focus is back on the chrome */ }
+  });
+
+  /* ---------- wiring ---------- */
+  document.addEventListener('keydown', onKey);
+  document.addEventListener('click', (e) => {
+    const tagEl = e.target.closest('[data-tag]');
+    if (tagEl) { e.preventDefault(); openPalette('#' + tagEl.dataset.tag + ' '); return; }
+    const openEl = e.target.closest('[data-open]');
+    if (openEl) { openTool(TOOLS.find((t) => t.slug === openEl.dataset.open), e.shiftKey || e.metaKey || e.ctrlKey); return; }
+    const action = e.target.closest('[data-action]');
+    if (action) {
+      const a = action.dataset.action;
+      if (a === 'help') openHelp();
+      else if (a === 'close-help') closeHelp();
+      else if (a === 'close-palette') closePalette();
+    }
+  });
+  $('results').addEventListener('mousemove', (e) => {
+    const el = e.target.closest('.result');
+    if (el && +el.dataset.i !== state.sel) select(+el.dataset.i);
+  });
+  $('searchInput').addEventListener('input', (e) => { state.q = e.target.value; state.sel = 0; renderResults(); });
+  $('searchBtn').addEventListener('click', () => openPalette());
+  $('homeLink').addEventListener('click', (e) => { e.preventDefault(); goHome(); });
+  $('closeBtn').addEventListener('click', goHome);
+  $('prevBtn').addEventListener('click', () => step(-1));
+  $('nextBtn').addEventListener('click', () => step(1));
+  $('copyBtn').addEventListener('click', copyLink);
+  $('railToggle').addEventListener('click', toggleRail);
+  window.addEventListener('hashchange', route);
+  window.addEventListener('popstate', route);
+
+  document.body.tabIndex = -1;
+  document.querySelectorAll('.mod-p').forEach((el) => { el.textContent = MOD + (IS_MAC ? '' : ' ') + 'P'; });
+  $('shortcuts').innerHTML = SHORTCUTS.map(([keys, label]) =>
+    '<dt>' + keys.map(kbd).join('') + '</dt><dd>' + esc(label) + '</dd>'
+  ).join('');
+
+  fetch('tools.json', { cache: 'no-cache' })
+    .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then((data) => {
+      TOOLS = data.filter((t) => t && t.slug).map(normalize);
+      renderHome();
+      route();
+    })
+    .catch((err) => {
+      $('grid').innerHTML = '<p class="notice">Could not load tools.json (' + esc(err.message) + '). Serve this folder over HTTP, e.g. <code>python3 -m http.server</code>.</p>';
+    });
+})();
+</script>
+</body>
+</html>
