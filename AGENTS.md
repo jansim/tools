@@ -5,7 +5,7 @@ Static site served by GitHub Pages at **https://simson.io/tools/**. No build ste
 ```
 index.html            outer chrome: landing grid, search palette, tool view (iframe). Rarely changes.
 tools.json            registry of all tools; the chrome renders only from this file.
-scripts/check-tools.mjs   validates tools.json (node, no deps)
+scripts/check-tools.mjs   validates tools.json, syncs the README tool list (node, no deps)
 <slug>/index.html     one self-contained tool per folder
 <slug>/screenshot.png optional preview image
 <slug>/README.md      optional short description (shown on GitHub)
@@ -20,7 +20,7 @@ You almost never need to read or touch `index.html`. Do this:
 1. **Local tool**: create `<slug>/index.html` (kebab-case slug, single file, see "Tool rules"). Skip for tools hosted elsewhere.
 2. **Register it**: append an entry to `tools.json`.
 3. **Optional**: add `<slug>/screenshot.png` (16:10, ~1280×800, top of the UI is what shows in cards) and a 2–4 line `<slug>/README.md`.
-4. **Check**: `node scripts/check-tools.mjs`.
+4. **Check**: `node scripts/check-tools.mjs --fix`. Validates `tools.json` and regenerates the tool list in `README.md` (between the `<!-- tools:… -->` markers; don't edit it by hand). Without `--fix` it fails if the list is stale.
 
 ### `tools.json` entry
 

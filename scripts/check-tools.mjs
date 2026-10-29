@@ -1,5 +1,6 @@
-// Validates tools.json. Run: node scripts/check-tools.mjs
-import { readFileSync, existsSync } from 'node:fs';
+// Validates tools.json and checks that the tool list in README.md matches it.
+// Run: node scripts/check-tools.mjs   (add --fix to rewrite the README list)
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 
 const KNOWN = new Set(['slug', 'name', 'description', 'tags', 'keywords', 'url', 'screenshot', 'embed', 'source', 'added']);
 const errors = [];
@@ -39,5 +40,32 @@ for (const [i, t] of (Array.isArray(tools) ? tools : []).entries()) {
 if (errors.length) {
   console.error(errors.join('\n'));
   process.exit(1);
+}
+
+// README tool list, generated between the markers below.
+const START = '<!-- tools:start -->';
+const END = '<!-- tools:end -->';
+const cell = (s) => String(s).replace(/\|/g, '\\|').replace(/\s+/g, ' ').trim();
+const list = [
+  '| Tool | Description |',
+  '|---|---|',
+  ...tools.map((t) => `| [${cell(t.name)}](${t.url || `https://simson.io/tools/${t.slug}/`}) | ${cell(t.description)} |`),
+].join('\n');
+const readme = readFileSync('README.md', 'utf8');
+const a = readme.indexOf(START);
+const b = readme.indexOf(END);
+if (a < 0 || b < a) {
+  console.error(`README.md is missing the ${START} … ${END} markers`);
+  process.exit(1);
+}
+const updated = `${readme.slice(0, a + START.length)}\n${list}\n${readme.slice(b)}`;
+if (updated !== readme) {
+  if (process.argv.includes('--fix')) {
+    writeFileSync('README.md', updated);
+    console.log('README.md tool list updated');
+  } else {
+    console.error('README.md tool list is out of date; run: node scripts/check-tools.mjs --fix');
+    process.exit(1);
+  }
 }
 console.log(`tools.json OK (${tools.length} tools)`);
