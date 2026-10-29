@@ -68,7 +68,7 @@ External tool example, nothing else to add to the repo:
 - **Self-contained single `index.html`.** Inline CSS/JS. Libraries from a CDN with a pinned version (cdnjs preferred, e.g. `https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js`). Never `@latest`. No build step.
 - **Client-side only.** No servers, no API keys; files the user drops stay in the browser.
 - **Works standalone and inside the iframe.** Don't use `window.top`/`parent`, don't add a site header, "back to tools" link or nav: the chrome provides those. Downloads via `<a download>`/Blob and the clipboard API work in the iframe.
-- **Keyboard**: the chrome uses `, . b c o h / 1-9 Esc` and `⌘/Ctrl+P`/`K`, but only while focus is in the chrome, so tools may use any keys.
+- **Keyboard**: the chrome uses `, . b c o h / 1-9 Esc` and `⌘/Ctrl+P`/`K`, but only while focus is in the chrome, so tools may use any keys. If a tool adds shortcuts, match on `e.key` (not `e.code`), ignore events with `altKey` (AltGr on Windows is ctrl+alt), and pick keys typed without AltGr/Option on a German QWERTZ layout (so no `[ ] { } \ | @ ~`).
 - **Responsive** down to 390 px width, `<meta name="viewport" content="width=device-width, initial-scale=1">`, `<title>` = the tool's `name`.
 
 ## Common styling

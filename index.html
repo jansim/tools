@@ -628,7 +628,17 @@ body.is-tool .search-btn { flex-basis: 320px; }
     if (restore) document.body.focus();
   }
 
-  /* ---------- keyboard ---------- */
+  /* ---------- keyboard ----------
+     Shortcuts match on e.key (the character typed), never e.code, so they follow the user's layout:
+     every key used here is reachable without AltGr/Option on QWERTZ (German) as well as QWERTY.
+     Alt/AltGr combos are ignored; AltGr reports ctrl+alt on Windows and must not count as Ctrl. */
+  function isSearchCombo(e) {
+    if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return false;
+    const k = (e.key || '').toLowerCase();
+    // Non-Latin layouts (e.g. Cyrillic) report another letter in e.key; fall back to the physical key.
+    return /^[a-z]$/.test(k) ? (k === 'p' || k === 'k') : (e.code === 'KeyP' || e.code === 'KeyK');
+  }
+
   function onKey(e) {
     const k = e.key;
     const mod = e.metaKey || e.ctrlKey;
@@ -636,7 +646,7 @@ body.is-tool .search-btn { flex-basis: 320px; }
       if (k === 'Escape' || k === 'h' || k === '?') { e.preventDefault(); closeHelp(); }
       return;
     }
-    if (mod && /^[pk]$/i.test(k)) { e.preventDefault(); paletteOpen() ? closePalette() : openPalette(); return; }
+    if (isSearchCombo(e)) { e.preventDefault(); e.stopPropagation(); paletteOpen() ? closePalette() : openPalette(); return; }
     if (paletteOpen()) {
       const list = filter(state.q);
       if (k === 'ArrowDown') { e.preventDefault(); select(state.sel + 1); return; }
@@ -668,13 +678,14 @@ body.is-tool .search-btn { flex-basis: 320px; }
   $('frame').addEventListener('load', () => {
     try {
       $('frame').contentWindow.addEventListener('keydown', (e) => {
-        if ((e.metaKey || e.ctrlKey) && /^[pk]$/i.test(e.key)) { e.preventDefault(); openPalette(); }
-      });
+        if (isSearchCombo(e)) { e.preventDefault(); e.stopPropagation(); openPalette(); }
+      }, true);
     } catch (err) { /* cross-origin tool: shortcuts work once focus is back on the chrome */ }
   });
 
   /* ---------- wiring ---------- */
-  document.addEventListener('keydown', onKey);
+  // Capture phase so ⌘P / Ctrl P beats the browser's print dialog and any handler further down.
+  window.addEventListener('keydown', onKey, true);
   document.addEventListener('click', (e) => {
     const tagEl = e.target.closest('[data-tag]');
     if (tagEl) { e.preventDefault(); openPalette('#' + tagEl.dataset.tag + ' '); return; }
