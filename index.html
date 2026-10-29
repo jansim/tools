@@ -73,10 +73,20 @@ kbd {
 .nav { border-bottom: 1px solid var(--line); background: var(--bg); flex-shrink: 0; }
 .nav-inner { padding: 8px 12px 8px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .nav-left { flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 6px; font-size: 20px; min-height: 44px; }
-.crumbs { display: flex; align-items: center; min-width: 0; white-space: nowrap; }
+.crumbs { display: flex; align-items: center; min-width: 0; overflow: hidden; white-space: nowrap; }
 .crumbs a { text-decoration: none; flex-shrink: 0; }
 .crumbs a:hover { color: var(--accent-ink); }
 .slash { color: var(--accent); flex-shrink: 0; }
+/* "simson.io/" collapses away while a tool is open */
+.crumb-site {
+  display: inline-flex; overflow: hidden; flex-shrink: 0; max-width: 8em;
+  transition: max-width .22s ease, opacity .16s ease, visibility 0s;
+}
+body.is-tool .crumb-site {
+  max-width: 0; opacity: 0; visibility: hidden;
+  transition: max-width .22s ease, opacity .16s ease, visibility 0s linear .22s;
+}
+@media (prefers-reduced-motion: reduce) { .crumb-site, body.is-tool .crumb-site { transition: none; } }
 .crumb-tool { font-weight: 400; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .search-btn {
   flex: 0 1 440px; min-width: 0; height: 42px; padding: 0 10px 0 12px;
@@ -221,6 +231,10 @@ body.is-tool { height: 100vh; height: 100dvh; overflow: hidden; }
 
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+body.is-tool .search-btn { flex-basis: 320px; }
+@media (max-width: 1100px) {
+  .nav-right .kbd-hint { display: none; }
+}
 @media (hover: none) and (pointer: coarse) {
   .hints, .search-btn kbd { display: none; }
 }
@@ -248,7 +262,7 @@ body.is-tool { height: 100vh; height: 100dvh; overflow: hidden; }
         <kbd>b</kbd>
       </button>
       <span class="crumbs">
-        <a href="https://simson.io/">simson.io</a><span class="slash" aria-hidden="true">/</span><a href="./" id="homeLink" aria-current="page">tools</a>
+        <span class="crumb-site"><a href="https://simson.io/">simson.io</a><span class="slash" aria-hidden="true">/</span></span><a href="./" id="homeLink" aria-current="page">tools</a>
         <span class="slash tool-only" aria-hidden="true">/</span><span class="crumb-tool tool-only" id="crumbTool" aria-current="page"></span>
       </span>
     </div>
