@@ -63,6 +63,16 @@ External tool example, nothing else to add to the repo:
 }
 ```
 
+## Convenience first (central design principle)
+
+A tool should get the user to a result in as few steps as possible. Accept input in every way people try, start working right away, and make the result easy to take away.
+
+- **Every input path.** Anything that takes a file offers a file picker *and* drag and drop. The drop target is the **whole tool/page**, not a small "drop here" box, with a clear full-window overlay while dragging. Where it makes sense, also accept paste (`Ctrl/⌘+V` of images, files or text) and several files at once.
+- **No unnecessary clicks.** Process input as soon as it arrives, with no separate "Convert"/"Go" button unless the work is slow or destructive. Pick sensible defaults so the common case needs no settings, and update output live as options change.
+- **Easy output.** One-click copy to clipboard and download, with useful filenames (derived from the input name). Show the result immediately, ideally with a preview.
+- **Quick to repeat.** Dropping or pasting new input replaces the old one without a reset step. Remembering the last-used options in `localStorage` is welcome.
+- **Obvious at a glance.** The empty state says what to do ("Drop an image anywhere, paste, or choose a file"), focus lands on the main input, and errors say what went wrong in plain words.
+
 ## Tool rules
 
 - **Self-contained single `index.html`.** Inline CSS/JS. Libraries from a CDN with a pinned version (cdnjs preferred, e.g. `https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js`). Never `@latest`. No build step.
