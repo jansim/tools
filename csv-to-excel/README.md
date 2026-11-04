@@ -1,7 +1,5 @@
-# csv-to-excel-converter 📊
+# CSV to Excel Converter
 
-![A screenshot of the app, showing the drag and drop interface for converting CSV files to Excel](./screenshot.png)
+![Screenshot of the converter showing a two-sheet workbook preview](./screenshot.png)
 
-A simple tool for converting CSV files to Excel format with drag-and-drop functionality.
-
-Multiple CSV files can be converted at once into a single Excel file with separate sheets.
+Drop, paste or choose CSV files and get an `.xlsx` workbook, one sheet per file. Delimiters are detected automatically, there is a preview of every sheet, and nothing leaves the browser.
