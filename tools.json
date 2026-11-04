@@ -36,5 +36,14 @@
     "screenshot": "regenbogen/screenshot.png",
     "source": "https://github.com/jansim/regenbogen",
     "added": "2026-11-04"
+  },
+  {
+    "slug": "image-resize-crop",
+    "name": "Image Resize & Crop",
+    "description": "Crop, resize, rotate and flip an image, with aspect-ratio presets and PNG, JPEG or WebP export.",
+    "tags": ["images", "png", "resize", "crop", "convert"],
+    "keywords": ["scale", "shrink", "downscale", "aspect ratio", "rotate", "flip", "jpg", "jpeg", "webp", "compress"],
+    "screenshot": "image-resize-crop/screenshot.png",
+    "added": "2026-11-04"
   }
 ]
