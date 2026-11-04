@@ -85,11 +85,11 @@ body.frame-focused.frame-same-origin kbd.mod-p { opacity: 1; }
 /* "simson.io/" collapses away while a tool is open */
 .crumb-site {
   display: inline-flex; overflow: hidden; flex-shrink: 0; max-width: 8em;
-  transition: max-width .22s ease, opacity .16s ease, visibility 0s;
+  transition: max-width .26s ease, opacity .19s ease, visibility 0s;
 }
 body.is-tool .crumb-site {
   max-width: 0; opacity: 0; visibility: hidden;
-  transition: max-width .22s ease, opacity .16s ease, visibility 0s linear .22s;
+  transition: max-width .26s ease, opacity .19s ease, visibility 0s linear .26s;
 }
 @media (prefers-reduced-motion: reduce) { .crumb-site, body.is-tool .crumb-site { transition: none; } }
 .crumb-tool { font-weight: 400; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -154,7 +154,7 @@ body:not(.is-tool) .tool-only { display: none !important; }
 /* ---------- tool view ---------- */
 body.is-tool { height: 100vh; height: 100dvh; overflow: hidden; }
 .rail { flex: 0 0 240px; border-right: 1px solid var(--line); padding: 12px 8px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
-.rail.closed { flex-basis: 61px; }
+.rail[hidden] { display: none; }
 .rail-head { display: flex; justify-content: space-between; align-items: center; padding: 0 8px; font-size: 12px; color: var(--faint); }
 .rail-head .mono { font-family: var(--mono); }
 .rail-head .link-btn { font-size: 12px; color: var(--faint); }
@@ -168,15 +168,8 @@ body.is-tool { height: 100vh; height: 100dvh; overflow: hidden; }
 .rail-item span { padding-top: 1px; }
 .rail-item:hover { background: var(--soft); }
 .rail-item[aria-current="page"] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-ink); font-weight: 400; }
-.rail.closed ul { align-items: center; gap: 4px; }
-/* on the landing page the (always collapsed) rail stays in view while the grid scrolls */
-body:not(.is-tool) .rail ul { position: sticky; top: 12px; }
-.rail-mini {
-  width: 44px; height: 44px; border-radius: var(--radius); font-family: var(--mono); font-size: 13px; cursor: pointer;
-  background: var(--soft); border: 1px solid var(--line); color: var(--ink);
-}
-.rail-mini:hover { border-color: var(--line-strong); }
-.rail-mini[aria-current="page"] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-ink); }
+/* on the landing page the rail stays in view while the grid scrolls */
+body:not(.is-tool) .rail { position: sticky; top: 0; align-self: flex-start; height: 100vh; height: 100dvh; }
 .stage { flex: 1; min-width: 0; padding: 12px; display: flex; }
 .stage iframe { flex: 1; width: 100%; height: 100%; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
 .fallback {
@@ -264,7 +257,7 @@ body.is-tool .search-btn { flex-basis: 320px; }
 <header class="nav">
   <div class="nav-inner">
     <div class="nav-left">
-      <button type="button" class="icon-btn rail-toggle tool-only" id="railToggle" aria-expanded="true" aria-label="Collapse sidebar" title="Toggle sidebar (b)">
+      <button type="button" class="icon-btn rail-toggle" id="railToggle" aria-expanded="true" aria-label="Hide sidebar" title="Toggle sidebar (b)">
         <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
         <kbd>b</kbd>
       </button>
@@ -305,7 +298,7 @@ body.is-tool .search-btn { flex-basis: 320px; }
 </header>
 
 <div class="layout">
-<nav class="rail closed" id="rail" aria-label="Tools"></nav>
+<nav class="rail" id="rail" aria-label="Tools" hidden></nav>
 
 <main class="home" id="home">
   <div class="home-head">
@@ -380,7 +373,7 @@ body.is-tool .search-btn { flex-basis: 320px; }
     [['↵'], 'Open the selected tool here'],
     [['⇧', '↵'], 'Open the selected tool in a new tab'],
     [['1', '…', '9'], 'Open the nth tool'],
-    [['b'], 'Collapse / expand the tool sidebar'],
+    [['b'], 'Show / hide the tool sidebar'],
     [[','], 'Previous tool'],
     [['.'], 'Next tool'],
     [['o'], 'Open current tool in a new tab'],
@@ -472,24 +465,19 @@ body.is-tool .search-btn { flex-basis: 320px; }
   /* ---------- tool view ---------- */
   function renderRail() {
     const rail = $('rail');
-    const open = state.railOpen && !!state.active; // always collapsed on the landing page
-    rail.classList.toggle('closed', !open);
+    const open = state.railOpen;
+    rail.hidden = !open;
     const toggle = $('railToggle');
     toggle.setAttribute('aria-expanded', String(state.railOpen));
-    toggle.setAttribute('aria-label', state.railOpen ? 'Collapse sidebar' : 'Expand sidebar');
+    toggle.setAttribute('aria-label', state.railOpen ? 'Hide sidebar' : 'Show sidebar');
     const cur = (t) => (t.slug === state.active ? ' aria-current="page"' : '');
-    if (open) {
-      rail.innerHTML =
-        '<div class="rail-head"><span class="mono">' + TOOLS.length + ' tools</span>' +
-        '<button type="button" class="link-btn" data-action="help"><kbd>h</kbd> shortcuts</button></div>' +
-        '<ul>' + TOOLS.map((t, i) =>
-          '<li><button type="button" class="rail-item" data-open="' + esc(t.slug) + '"' + cur(t) + '>' + kbd(num(i)) + '<span>' + esc(t.name) + '</span></button></li>'
-        ).join('') + '</ul>';
-    } else {
-      rail.innerHTML = '<ul>' + TOOLS.map((t, i) =>
-        '<li><button type="button" class="rail-mini" data-open="' + esc(t.slug) + '" aria-label="' + esc(t.name) + '" title="' + esc(t.name) + '"' + cur(t) + '>' + num(i) + '</button></li>'
+    if (!open) { rail.innerHTML = ''; return; }
+    rail.innerHTML =
+      '<div class="rail-head"><span class="mono">' + TOOLS.length + ' tools</span>' +
+      '<button type="button" class="link-btn" data-action="help"><kbd>h</kbd> shortcuts</button></div>' +
+      '<ul>' + TOOLS.map((t, i) =>
+        '<li><button type="button" class="rail-item" data-open="' + esc(t.slug) + '"' + cur(t) + '>' + kbd(num(i)) + '<span>' + esc(t.name) + '</span></button></li>'
       ).join('') + '</ul>';
-    }
   }
 
   function render() {
@@ -674,10 +662,10 @@ body.is-tool .search-btn { flex-basis: 320px; }
     if (k === '/') { e.preventDefault(); openPalette(''); return; }
     if (k === 'h' || k === '?') { e.preventDefault(); openHelp(); return; }
     if (/^[1-9]$/.test(k)) { const t = TOOLS[+k - 1]; if (t) { e.preventDefault(); openTool(t); } return; }
+    if (k === 'b') { e.preventDefault(); toggleRail(); return; }
     if (!state.active) return;
     const t = TOOLS.find((x) => x.slug === state.active);
     if (k === 'Escape') { e.preventDefault(); goHome(); return; }
-    if (k === 'b') { e.preventDefault(); toggleRail(); return; }
     if (k === ',') { e.preventDefault(); step(-1); return; }
     if (k === '.') { e.preventDefault(); step(1); return; }
     if (k === 'o') { e.preventDefault(); openTool(t, true); return; }
