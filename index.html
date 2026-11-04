@@ -68,6 +68,11 @@ kbd {
   font-weight: 400;
 }
 .keys { display: inline-flex; align-items: center; gap: 4px; }
+/* While the tool iframe has focus the chrome's keys don't reach it, so the hints fade.
+   ⌘P/⌘K still work for same-origin tools (forwarded from the frame), so that hint stays. */
+kbd { transition: opacity 0.15s; }
+body.frame-focused kbd { opacity: 0.35; }
+body.frame-focused.frame-same-origin kbd.mod-p { opacity: 1; }
 
 /* ---------- navbar ---------- */
 .nav { border-bottom: 1px solid var(--line); background: var(--bg); flex-shrink: 0; }
@@ -511,6 +516,7 @@ body.is-tool .search-btn { flex-basis: 320px; }
     frame.title = t.name;
     if (t.embed && frame.getAttribute('src') !== t.url) frame.setAttribute('src', t.url);
     if (!t.embed) frame.removeAttribute('src');
+    syncFrameFocus();
   }
 
   function route() {
@@ -680,12 +686,24 @@ body.is-tool .search-btn { flex-basis: 320px; }
 
   // Same-origin tools: let ⌘P / ⌘K open search even while the iframe has focus.
   $('frame').addEventListener('load', () => {
+    let same = false;
     try {
       $('frame').contentWindow.addEventListener('keydown', (e) => {
         if (isSearchCombo(e)) { e.preventDefault(); e.stopPropagation(); openPalette(); }
       }, true);
+      same = true;
     } catch (err) { /* cross-origin tool: shortcuts work once focus is back on the chrome */ }
+    document.body.classList.toggle('frame-same-origin', same);
   });
+
+  // Fade the shortcut hints while focus is inside the tool iframe (the chrome can't hear keys then).
+  function syncFrameFocus() {
+    document.body.classList.toggle('frame-focused', document.activeElement === $('frame') && !$('frame').hidden && !$('stage').hidden);
+  }
+  // Focus moving into the iframe blurs the chrome window; activeElement settles right after.
+  window.addEventListener('blur', () => setTimeout(syncFrameFocus, 0));
+  window.addEventListener('focus', syncFrameFocus);
+  document.addEventListener('focusin', syncFrameFocus);
 
   /* ---------- wiring ---------- */
   // Capture phase so ⌘P / Ctrl P beats the browser's print dialog and any handler further down.
