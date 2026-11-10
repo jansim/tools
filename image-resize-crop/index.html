@@ -201,7 +201,7 @@ fieldset:disabled .sec { opacity: .45; }
       </section>
 
       <section class="sec">
-        <div class="label"><span>Crop</span><button class="chip" id="resetCrop" style="height:28px;font-size:13px">Select all</button></div>
+        <div class="label"><span>Crop</span><span class="row" style="gap:6px"><button class="chip" id="autoCrop" style="height:28px;font-size:13px" title="Shrink the crop to the content, trimming transparent or single-colour borders (A)">Auto-crop</button><button class="chip" id="resetCrop" style="height:28px;font-size:13px">Select all</button></span></div>
         <div class="chips" id="ratios"></div>
         <div class="grid4">
           <label class="field">X<input type="number" id="cx" min="0" step="1" inputmode="numeric"></label>
@@ -245,7 +245,7 @@ fieldset:disabled .sec { opacity: .45; }
           <button class="btn primary" id="dl"><svg><use href="#i-down"/></svg>Download</button>
           <button class="btn" id="copy"><svg><use href="#i-copy"/></svg>Copy</button>
         </div>
-        <div class="keys"><kbd>Ctrl</kbd>+<kbd>S</kbd> download · <kbd>Ctrl</kbd>+<kbd>C</kbd> copy · <kbd>Ctrl</kbd>+<kbd>O</kbd> open<br>Drag on the image to draw a new crop. Arrow keys nudge it.</div>
+        <div class="keys"><kbd>Ctrl</kbd>+<kbd>S</kbd> download · <kbd>Ctrl</kbd>+<kbd>C</kbd> copy · <kbd>Ctrl</kbd>+<kbd>O</kbd> open<br>Drag on the image to draw a new crop. Arrow keys nudge it, <kbd>A</kbd> auto-crops.</div>
       </section>
     </fieldset>
   </aside>
@@ -658,6 +658,56 @@ fieldset:disabled .sec { opacity: .45; }
     applyRatio(); update();
   });
   $('resetCrop').addEventListener('click', () => { fullCrop(); update(); });
+  $('autoCrop').addEventListener('click', autoCrop);
+
+  // ---------- auto-crop ----------
+  // Shrinks the crop to its content: trims rows/columns at the edges that are transparent
+  // or the same colour as the selection's border (picked from its corners).
+  const TOL = 24, ALPHA_MIN = 8;
+  function autoCrop() {
+    if (!img) return;
+    const c = crop, k = Math.min(1, Math.sqrt(MAX_AREA / (c.w * c.h)));
+    const w = Math.max(1, Math.round(c.w * k)), h = Math.max(1, Math.round(c.h * k));
+    const cv = mkCanvas(w, h), ctx = cv.getContext('2d', { willReadFrequently: true });
+    drawOriented(ctx, c, w / c.w, h / c.h);
+    let d;
+    try { d = ctx.getImageData(0, 0, w, h).data; } catch { toast("Couldn't read this image's pixels.", true); return; }
+    const at = (x, y) => (y * w + x) * 4;
+    const near = (i, j) => Math.abs(d[i] - d[j]) <= TOL && Math.abs(d[i + 1] - d[j + 1]) <= TOL &&
+      Math.abs(d[i + 2] - d[j + 2]) <= TOL && Math.abs(d[i + 3] - d[j + 3]) <= TOL;
+    // background colour: the corner colour shared by most corners (transparent always counts as background)
+    const corners = [at(0, 0), at(w - 1, 0), at(0, h - 1), at(w - 1, h - 1)].filter((i) => d[i + 3] >= ALPHA_MIN);
+    let ref = -1, best = 0;
+    for (const i of corners) { const n = corners.filter((j) => near(i, j)).length; if (n > best) { best = n; ref = i; } }
+    const bg = (i) => d[i + 3] < ALPHA_MIN || (ref >= 0 && near(i, ref));
+    const rowBg = (y) => { for (let x = 0; x < w; x++) if (!bg(at(x, y))) return false; return true; };
+    const colBg = (x, y0, y1) => { for (let y = y0; y <= y1; y++) if (!bg(at(x, y))) return false; return true; };
+    let top = 0, bot = h - 1;
+    while (top <= bot && rowBg(top)) top++;
+    if (top > bot) { toast('Nothing to crop to: the selection is all one colour.'); return; }
+    while (rowBg(bot)) bot--;
+    let left = 0, right = w - 1;
+    while (colBg(left, top, bot)) left++;
+    while (colBg(right, top, bot)) right--;
+    // back to image px (rounding outwards when the analysis was downscaled)
+    const x0 = c.x + Math.floor(left / k), y0 = c.y + Math.floor(top / k);
+    const x1 = c.x + Math.min(c.w, Math.ceil((right + 1) / k)), y1 = c.y + Math.min(c.h, Math.ceil((bot + 1) / k));
+    let n = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+    const r = ratio();
+    if (r) { // keep the chosen aspect ratio: grow around the content's centre, staying inside the image
+      let rw = n.w, rh = n.h;
+      if (rw / rh < r) rw = rh * r; else rh = rw / r;
+      [rw, rh] = fitRatio(rw, rh, r);
+      n = { x: n.x + n.w / 2 - rw / 2, y: n.y + n.h / 2 - rh / 2, w: rw, h: rh };
+    }
+    n = normalize(n);
+    if (n.x === c.x && n.y === c.y && n.w === c.w && n.h === c.h) { toast('The crop already fits the content.'); return; }
+    crop = n; update();
+    cropEl.focus({ preventScroll: true });
+  }
+  cropEl.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 'a' && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); autoCrop(); }
+  });
   $('fmt').addEventListener('change', (e) => { opts.fmt = e.target.value; save(); syncPanel(true); });
   $('q').addEventListener('input', (e) => { opts.q = +e.target.value; $('qv').textContent = opts.q; save(); syncPanel(true); });
 
