@@ -33,6 +33,7 @@
   --radius: 6px;
   --sans: 'Roboto', system-ui, sans-serif;
   --mono: 'Roboto Mono', ui-monospace, monospace;
+  --emoji: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -50,6 +51,7 @@ body {
 a { color: var(--ink); }
 [hidden] { display: none !important; }
 button { font: inherit; color: inherit; }
+.emoji { font-family: var(--emoji); font-weight: 400; line-height: 1; flex-shrink: 0; white-space: nowrap; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 kbd {
@@ -92,6 +94,7 @@ body.is-tool .crumb-site {
   transition: max-width .26s ease, opacity .19s ease, visibility 0s linear .26s;
 }
 @media (prefers-reduced-motion: reduce) { .crumb-site, body.is-tool .crumb-site { transition: none; } }
+.crumb-emoji { font-size: 18px; margin: 0 6px 0 4px; }
 .crumb-tool { font-weight: 400; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .search-btn {
   flex: 0 1 440px; min-width: 0; height: 42px; padding: 0 10px 0 12px;
@@ -143,6 +146,8 @@ body:not(.is-tool) .tool-only { display: none !important; }
 .tile-body { padding: 16px 16px 6px; display: flex; flex-direction: column; gap: 6px; }
 .tile-title { display: flex; align-items: flex-start; gap: 10px; }
 .tile-title kbd { margin-top: 4px; }
+.tile-title .emoji { font-size: 20px; margin-top: 2px; }
+.shot .emoji { font-size: 64px; }
 .tile-name { font-size: 18px; font-weight: 400; line-height: 1.35; }
 .tile-main:hover .tile-name { color: var(--accent-ink); }
 .tile-desc { font-size: 14px; color: var(--muted); }
@@ -166,6 +171,7 @@ body.is-tool { height: 100vh; height: 100dvh; overflow: hidden; }
 }
 .rail-item kbd { margin-top: 3px; }
 .rail-item span { padding-top: 1px; }
+.rail-item .emoji { width: 2.6em; font-size: 15px; padding-top: 3px; text-align: center; }
 .rail-item:hover { background: var(--soft); }
 .rail-item[aria-current="page"] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-ink); font-weight: 400; }
 /* on the landing page the rail stays in view while the grid scrolls */
@@ -201,6 +207,7 @@ body:not(.is-tool) .rail { position: sticky; top: 0; align-self: flex-start; hei
 .results ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .result { width: 100%; display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border: 0; border-radius: var(--radius); text-align: left; cursor: pointer; background: transparent; }
 .result > kbd { margin-top: 4px; }
+.result > .emoji { font-size: 18px; margin-top: 2px; width: 2.6em; text-align: center; }
 .result-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .result-name { font-size: 16px; font-weight: 400; }
 .result-desc { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -263,7 +270,7 @@ body.is-tool .search-btn { flex-basis: 320px; }
       </button>
       <span class="crumbs">
         <span class="crumb-site"><a href="https://simson.io/">simson.io</a><span class="slash" aria-hidden="true">/</span></span><a href="./" id="homeLink" aria-current="page">tools</a>
-        <span class="slash tool-only" aria-hidden="true">/</span><span class="crumb-tool tool-only" id="crumbTool" aria-current="page"></span>
+        <span class="slash tool-only" aria-hidden="true">/</span><span class="emoji crumb-emoji tool-only" id="crumbEmoji" aria-hidden="true"></span><span class="crumb-tool tool-only" id="crumbTool" aria-current="page"></span>
       </span>
     </div>
 
@@ -406,6 +413,7 @@ body.is-tool .search-btn { flex-basis: 320px; }
     return {
       slug: t.slug,
       name: t.name || t.slug,
+      emoji: t.emoji || '',
       description: t.description || '',
       tags: Array.isArray(t.tags) ? t.tags : [],
       keywords: Array.isArray(t.keywords) ? t.keywords : [],
@@ -420,9 +428,11 @@ body.is-tool .search-btn { flex-basis: 320px; }
   const num = (i) => (i < 9 ? String(i + 1) : '·');
   const absUrl = (t) => new URL(t.url, location.href).href;
   const shareUrl = (t) => location.origin + location.pathname + '#' + t.slug;
+  // The tool's 1–2 emoji, its stand-in for a logo. Decorative: the name always follows.
+  const emo = (t) => t.emoji ? '<span class="emoji" aria-hidden="true">' + esc(t.emoji) + '</span>' : '';
   const shot = (t) => t.screenshot
     ? '<span class="shot"><img src="' + esc(t.screenshot) + '" alt="" loading="lazy"></span>'
-    : '<span class="shot">' + esc(t.slug) + '</span>';
+    : '<span class="shot">' + (t.emoji ? emo(t) : esc(t.slug)) + '</span>';
 
   function filter(q) {
     const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -448,7 +458,7 @@ body.is-tool .search-btn { flex-basis: 320px; }
         '<button type="button" class="tile-main" data-open="' + esc(t.slug) + '">' +
           shot(t) +
           '<span class="tile-body">' +
-            '<span class="tile-title">' + kbd(num(i)) + '<span class="tile-name">' + esc(t.name) + '</span></span>' +
+            '<span class="tile-title">' + kbd(num(i)) + emo(t) + '<span class="tile-name">' + esc(t.name) + '</span></span>' +
             '<span class="tile-desc">' + esc(t.description) + '</span>' +
           '</span>' +
         '</button>' +
@@ -476,7 +486,7 @@ body.is-tool .search-btn { flex-basis: 320px; }
       '<div class="rail-head"><span class="mono">' + TOOLS.length + ' tools</span>' +
       '<button type="button" class="link-btn" data-action="help"><kbd>h</kbd> shortcuts</button></div>' +
       '<ul>' + TOOLS.map((t, i) =>
-        '<li><button type="button" class="rail-item" data-open="' + esc(t.slug) + '"' + cur(t) + '>' + kbd(num(i)) + '<span>' + esc(t.name) + '</span></button></li>'
+        '<li><button type="button" class="rail-item" data-open="' + esc(t.slug) + '"' + cur(t) + '>' + kbd(num(i)) + emo(t) + '<span>' + esc(t.name) + '</span></button></li>'
       ).join('') + '</ul>';
   }
 
@@ -496,6 +506,8 @@ body.is-tool .search-btn { flex-basis: 320px; }
     }
     document.title = t.name + ' — tools';
     $('crumbTool').textContent = t.name;
+    $('crumbEmoji').textContent = t.emoji;
+    $('crumbEmoji').hidden = !t.emoji;
     $('openBtn').href = t.url;
     $('fallbackLink').href = t.url;
     $('fallbackName').textContent = t.name;
@@ -584,7 +596,7 @@ body.is-tool .search-btn { flex-basis: 320px; }
     }
     $('results').innerHTML = '<ul id="resultList" role="listbox" aria-label="Results">' + list.map((t, i) =>
       '<li><button type="button" class="result" role="option" data-open="' + esc(t.slug) + '" data-i="' + i + '" aria-selected="' + (i === state.sel) + '">' +
-        kbd(num(i)) +
+        kbd(num(i)) + emo(t) +
         '<span class="result-text">' +
           '<span class="result-name">' + esc(t.name) + '</span>' +
           '<span class="result-desc">' + esc(t.description) + '</span>' +
@@ -600,7 +612,7 @@ body.is-tool .search-btn { flex-basis: 320px; }
     const p = $('preview');
     p.hidden = false;
     p.innerHTML = shot(t) +
-      '<span class="preview-name">' + esc(t.name) + '</span>' +
+      '<span class="preview-name">' + emo(t) + ' ' + esc(t.name) + '</span>' +
       '<span class="preview-desc">' + esc(t.description) + '</span>' +
       '<span class="preview-url">' + esc(t.external ? absUrl(t) : (location.host + location.pathname + '#' + t.slug)) + '</span>';
   }

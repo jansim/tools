@@ -18,7 +18,7 @@ Routing: `simson.io/tools/<slug>/` is the tool on its own; `simson.io/tools/#<sl
 You almost never need to read or touch `index.html`. Do this:
 
 1. **Local tool**: create `<slug>/index.html` (kebab-case slug, single file, see "Tool rules"). Skip for tools hosted elsewhere.
-2. **Register it**: append an entry to `tools.json`.
+2. **Register it**: append an entry to `tools.json`, including 1–2 identifying `emoji`.
 3. **Optional**: add `<slug>/screenshot.png` (16:10, ~1280×800, top of the UI is what shows in cards) and a 2–4 line `<slug>/README.md`.
 4. **Check**: `node scripts/check-tools.mjs`.
 
@@ -28,6 +28,7 @@ You almost never need to read or touch `index.html`. Do this:
 {
   "slug": "json-formatter",
   "name": "JSON Formatter",
+  "emoji": "🧹📋",
   "description": "One sentence, what it does. Shown on cards and in search.",
   "tags": ["data", "json", "format"],
   "keywords": ["pretty", "minify", "validate"],
@@ -40,6 +41,7 @@ You almost never need to read or touch `index.html`. Do this:
 |---|---|---|
 | `slug` | yes | kebab-case, unique. Folder name for local tools; also the `#hash` in the chrome. |
 | `name` | yes | Title-case display name. |
+| `emoji` | yes | 1–2 emoji that identify the tool in place of a logo, e.g. `"🖼️✂️"`. Shown next to the name in the sidebar, the landing grid, search and the breadcrumb, and as the card placeholder when there's no screenshot. Pick something distinct from the other tools' emoji. Nothing but emoji (the checker enforces this). |
 | `description` | yes | One or two sentences, no trailing marketing. |
 | `tags` | yes | Lowercase, no `#`. Reuse existing tags where they fit (`images`, `png`, `data`, `csv`, `convert`, …); they power the tag cloud and `#tag` search. 2–5 tags. |
 | `keywords` | no | Extra search-only terms (synonyms, file extensions). Not displayed. |
@@ -55,6 +57,7 @@ External tool example, nothing else to add to the repo:
 {
   "slug": "some-hosted-tool",
   "name": "Some Hosted Tool",
+  "emoji": "🧰",
   "description": "What it does.",
   "tags": ["text"],
   "url": "https://example.com/tool/",
