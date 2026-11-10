@@ -19,10 +19,10 @@ for (const [i, t] of (Array.isArray(tools) ? tools : []).entries()) {
   if (seen.has(t.slug)) errors.push(`${at}: duplicate slug`);
   seen.add(t.slug);
   if (!t.name) errors.push(`${at}: name is required`);
-  if (typeof t.emoji !== 'string' || !t.emoji.trim()) errors.push(`${at}: emoji is required (1–2 emoji)`);
+  if (typeof t.emoji !== 'string' || !t.emoji.trim()) errors.push(`${at}: emoji is required (a single emoji)`);
   else {
     const g = [...new Intl.Segmenter('en', { granularity: 'grapheme' }).segment(t.emoji)].map((x) => x.segment);
-    if (g.length > 2 || g.some((x) => !/\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(x))) errors.push(`${at}: emoji must be 1–2 emoji, nothing else`);
+    if (g.length !== 1 || g.some((x) => !/\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(x))) errors.push(`${at}: emoji must be exactly one emoji, nothing else`);
   }
   if (!t.description) errors.push(`${at}: description is required`);
   if (!Array.isArray(t.tags) || !t.tags.length) errors.push(`${at}: tags must be a non-empty array`);
