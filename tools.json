@@ -50,5 +50,14 @@
     "keywords": ["scale", "shrink", "downscale", "aspect ratio", "rotate", "flip", "jpg", "jpeg", "webp", "compress"],
     "screenshot": "image-resize-crop/screenshot.png",
     "added": "2026-11-04"
+  },
+  {
+    "slug": "colorblind-simulator",
+    "name": "Color Blindness Simulator",
+    "description": "See images and palettes as people with protanopia, deuteranopia, tritanopia or achromatopsia do, side by side or as a before/after comparison.",
+    "tags": ["images", "colors", "accessibility", "dataviz"],
+    "keywords": ["colorblind", "colourblind", "colour blindness", "cvd", "color vision deficiency", "protanopia", "deuteranopia", "tritanopia", "achromatopsia", "protanomaly", "deuteranomaly", "daltonism", "a11y", "palette", "hex"],
+    "screenshot": "colorblind-simulator/screenshot.png",
+    "added": "2026-11-10"
   }
 ]
