@@ -222,7 +222,7 @@ fieldset:disabled .sec { opacity: .45; }
           <button class="btn" id="copy"><svg><use href="#i-copy"/></svg>Copy</button>
         </div>
         <div class="keys"><kbd>1</kbd>–<kbd>4</kbd> type · <kbd>V</kbd> view · <kbd>Ctrl</kbd>+<kbd>S</kbd> download · <kbd>Ctrl</kbd>+<kbd>C</kbd> copy · <kbd>Ctrl</kbd>+<kbd>O</kbd> open</div>
-        <div class="note">Simulation after Machado, Oliveira &amp; Fernandes (2009), computed in linear RGB. Everyone sees colour a little differently, so treat it as a guide.</div>
+        <div class="note">Red, green and blue types use the model of Machado, Oliveira &amp; Fernandes (2009), applied in linear RGB. The paper models tritan vision only roughly and doesn't cover achromatopsia, which is shown here as plain luminance. Everyone sees colour a little differently, so treat it as a guide.</div>
       </section>
     </fieldset>
   </aside>
@@ -286,7 +286,7 @@ fieldset:disabled .sec { opacity: .45; }
   const TYPES = [
     { id: 'protan', full: 'Protanopia', part: 'Protanomaly', what: 'Red-weak', freq: '≈ 2% of men' },
     { id: 'deutan', full: 'Deuteranopia', part: 'Deuteranomaly', what: 'Green-weak, the most common', freq: '≈ 6% of men' },
-    { id: 'tritan', full: 'Tritanopia', part: 'Tritanomaly', what: 'Blue-weak', freq: '≈ 0.01%' },
+    { id: 'tritan', full: 'Tritanopia', part: 'Tritanomaly', what: 'Blue-weak, approximate', freq: '≈ 0.003%' },
     { id: 'achro', full: 'Achromatopsia', part: 'Achromatomaly', what: 'No colour, brightness only', freq: '≈ 1 in 30,000' },
   ];
   const typeName = (t, sev) => (sev >= 100 ? t.full : t.part);
@@ -376,10 +376,10 @@ fieldset:disabled .sec { opacity: .45; }
       b.querySelector('b').textContent = typeName(t, opts.sev);
     });
     sev.value = opts.sev;
-    $('sevOut').textContent = opts.sev + '%';
+    $('sevOut').textContent = `${opts.sev}% · ${opts.sev / 5} nm`;
     $('sevNote').textContent = opts.sev >= 100
-      ? 'Full: one cone type is missing (dichromacy).'
-      : 'Partial: one cone type is shifted (anomalous trichromacy), more common than full loss.';
+      ? 'Full: the affected cone\'s sensitivity is shifted by 20 nm until it responds like another cone type, which matches dichromacy.'
+      : `Partial: the affected cone\'s sensitivity is shifted by ${opts.sev / 5} nm (anomalous trichromacy). This is more common than full loss.`;
     $('expNote').textContent = opts.view === 'grid'
       ? 'Saves all five views side by side as one PNG.'
       : `Saves the ${typeName(cur(), opts.sev).toLowerCase()} version at full size.`;
