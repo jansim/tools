@@ -54,6 +54,7 @@
   {
     "slug": "colorblind-simulator",
     "name": "Color Blindness Simulator",
+    "emoji": "👓",
     "description": "See images and palettes as people with protanopia, deuteranopia, tritanopia or achromatopsia do, side by side or as a before/after comparison.",
     "tags": ["images", "colors", "accessibility", "dataviz"],
     "keywords": ["colorblind", "colourblind", "colour blindness", "cvd", "color vision deficiency", "protanopia", "deuteranopia", "tritanopia", "achromatopsia", "protanomaly", "deuteranomaly", "daltonism", "a11y", "palette", "hex"],
