@@ -33,6 +33,7 @@
   --radius: 6px;
   --sans: 'Roboto', system-ui, sans-serif;
   --mono: 'Roboto Mono', ui-monospace, monospace;
+  --emoji: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -50,6 +51,13 @@ body {
 a { color: var(--ink); }
 [hidden] { display: none !important; }
 button { font: inherit; color: inherit; }
+/* A tool's emoji, shown like an app icon: one emoji centred in a rounded square. --ico sets the size. */
+.ico {
+  --ico: 28px; width: var(--ico); height: var(--ico); flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: calc(var(--ico) * 0.26); border: 1px solid var(--line); background: var(--soft-2);
+  font-size: calc(var(--ico) * 0.54); font-family: var(--emoji); font-weight: 400; line-height: 1;
+}
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 kbd {
@@ -92,6 +100,7 @@ body.is-tool .crumb-site {
   transition: max-width .26s ease, opacity .19s ease, visibility 0s linear .26s;
 }
 @media (prefers-reduced-motion: reduce) { .crumb-site, body.is-tool .crumb-site { transition: none; } }
+.crumb-ico { --ico: 30px; margin: 0 8px 0 6px; }
 .crumb-tool { font-weight: 400; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .search-btn {
   flex: 0 1 440px; min-width: 0; height: 42px; padding: 0 10px 0 12px;
@@ -141,9 +150,11 @@ body:not(.is-tool) .tool-only { display: none !important; }
 .shot img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
 .tile .shot { border-bottom: 1px solid var(--line); }
 .tile-body { padding: 16px 16px 6px; display: flex; flex-direction: column; gap: 6px; }
-.tile-title { display: flex; align-items: flex-start; gap: 10px; }
-.tile-title kbd { margin-top: 4px; }
-.tile-name { font-size: 18px; font-weight: 400; line-height: 1.35; }
+.tile-title { display: flex; align-items: center; gap: 12px; }
+.tile-title kbd { margin-left: auto; }
+.tile-title .ico { --ico: 36px; }
+.shot .ico { --ico: 104px; }
+.tile-name { flex: 1; min-width: 0; font-size: 18px; font-weight: 400; line-height: 1.35; }
 .tile-main:hover .tile-name { color: var(--accent-ink); }
 .tile-desc { font-size: 14px; color: var(--muted); }
 .tile-foot { margin-top: auto; padding: 0 8px 6px 16px; display: flex; align-items: center; gap: 8px; }
@@ -160,12 +171,12 @@ body.is-tool { height: 100vh; height: 100dvh; overflow: hidden; }
 .rail-head .link-btn { font-size: 12px; color: var(--faint); }
 .rail ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
 .rail-item {
-  width: 100%; min-height: 44px; padding: 6px 8px; display: flex; align-items: flex-start; gap: 10px;
+  width: 100%; min-height: 44px; padding: 6px 8px; display: flex; align-items: center; gap: 10px;
   border-radius: var(--radius); text-align: left; cursor: pointer; background: transparent; border: 1px solid transparent;
   font-size: 15px; line-height: 1.35;
 }
-.rail-item kbd { margin-top: 3px; }
-.rail-item span { padding-top: 1px; }
+.rail-name { flex: 1; min-width: 0; }
+.rail-item[aria-current="page"] .ico { border-color: var(--accent-line); background: var(--bg); }
 .rail-item:hover { background: var(--soft); }
 .rail-item[aria-current="page"] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-ink); font-weight: 400; }
 /* on the landing page the rail stays in view while the grid scrolls */
@@ -200,7 +211,10 @@ body:not(.is-tool) .rail { position: sticky; top: 0; align-self: flex-start; hei
 .results { flex: 1 1 340px; min-width: 0; max-height: 440px; overflow-y: auto; padding: 6px; }
 .results ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .result { width: 100%; display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border: 0; border-radius: var(--radius); text-align: left; cursor: pointer; background: transparent; }
-.result > kbd { margin-top: 4px; }
+.result-keys { display: flex; gap: 4px; margin-top: 4px; flex-shrink: 0; }
+.result > .ico { --ico: 34px; margin-top: 2px; }
+.result[aria-selected="true"] .ico { border-color: var(--accent-line); background: var(--bg); }
+.preview-name { display: flex; align-items: center; gap: 10px; }
 .result-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .result-name { font-size: 16px; font-weight: 400; }
 .result-desc { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -263,7 +277,7 @@ body.is-tool .search-btn { flex-basis: 320px; }
       </button>
       <span class="crumbs">
         <span class="crumb-site"><a href="https://simson.io/">simson.io</a><span class="slash" aria-hidden="true">/</span></span><a href="./" id="homeLink" aria-current="page">tools</a>
-        <span class="slash tool-only" aria-hidden="true">/</span><span class="crumb-tool tool-only" id="crumbTool" aria-current="page"></span>
+        <span class="slash tool-only" aria-hidden="true">/</span><span class="ico crumb-ico tool-only" id="crumbEmoji" aria-hidden="true"></span><span class="crumb-tool tool-only" id="crumbTool" aria-current="page"></span>
       </span>
     </div>
 
@@ -406,6 +420,7 @@ body.is-tool .search-btn { flex-basis: 320px; }
     return {
       slug: t.slug,
       name: t.name || t.slug,
+      emoji: t.emoji || '',
       description: t.description || '',
       tags: Array.isArray(t.tags) ? t.tags : [],
       keywords: Array.isArray(t.keywords) ? t.keywords : [],
@@ -420,9 +435,11 @@ body.is-tool .search-btn { flex-basis: 320px; }
   const num = (i) => (i < 9 ? String(i + 1) : '·');
   const absUrl = (t) => new URL(t.url, location.href).href;
   const shareUrl = (t) => location.origin + location.pathname + '#' + t.slug;
+  // The tool's emoji as an icon, its stand-in for a logo. Decorative: the name always follows.
+  const emo = (t) => t.emoji ? '<span class="ico" aria-hidden="true">' + esc(t.emoji) + '</span>' : '';
   const shot = (t) => t.screenshot
     ? '<span class="shot"><img src="' + esc(t.screenshot) + '" alt="" loading="lazy"></span>'
-    : '<span class="shot">' + esc(t.slug) + '</span>';
+    : '<span class="shot">' + (t.emoji ? emo(t) : esc(t.slug)) + '</span>';
 
   function filter(q) {
     const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -448,7 +465,7 @@ body.is-tool .search-btn { flex-basis: 320px; }
         '<button type="button" class="tile-main" data-open="' + esc(t.slug) + '">' +
           shot(t) +
           '<span class="tile-body">' +
-            '<span class="tile-title">' + kbd(num(i)) + '<span class="tile-name">' + esc(t.name) + '</span></span>' +
+            '<span class="tile-title">' + emo(t) + '<span class="tile-name">' + esc(t.name) + '</span>' + kbd(num(i)) + '</span>' +
             '<span class="tile-desc">' + esc(t.description) + '</span>' +
           '</span>' +
         '</button>' +
@@ -476,7 +493,7 @@ body.is-tool .search-btn { flex-basis: 320px; }
       '<div class="rail-head"><span class="mono">' + TOOLS.length + ' tools</span>' +
       '<button type="button" class="link-btn" data-action="help"><kbd>h</kbd> shortcuts</button></div>' +
       '<ul>' + TOOLS.map((t, i) =>
-        '<li><button type="button" class="rail-item" data-open="' + esc(t.slug) + '"' + cur(t) + '>' + kbd(num(i)) + '<span>' + esc(t.name) + '</span></button></li>'
+        '<li><button type="button" class="rail-item" data-open="' + esc(t.slug) + '"' + cur(t) + '>' + emo(t) + '<span class="rail-name">' + esc(t.name) + '</span>' + kbd(num(i)) + '</button></li>'
       ).join('') + '</ul>';
   }
 
@@ -496,6 +513,8 @@ body.is-tool .search-btn { flex-basis: 320px; }
     }
     document.title = t.name + ' — tools';
     $('crumbTool').textContent = t.name;
+    $('crumbEmoji').textContent = t.emoji;
+    $('crumbEmoji').hidden = !t.emoji;
     $('openBtn').href = t.url;
     $('fallbackLink').href = t.url;
     $('fallbackName').textContent = t.name;
@@ -584,13 +603,13 @@ body.is-tool .search-btn { flex-basis: 320px; }
     }
     $('results').innerHTML = '<ul id="resultList" role="listbox" aria-label="Results">' + list.map((t, i) =>
       '<li><button type="button" class="result" role="option" data-open="' + esc(t.slug) + '" data-i="' + i + '" aria-selected="' + (i === state.sel) + '">' +
-        kbd(num(i)) +
+        emo(t) +
         '<span class="result-text">' +
           '<span class="result-name">' + esc(t.name) + '</span>' +
           '<span class="result-desc">' + esc(t.description) + '</span>' +
           '<span class="result-tags">' + t.tags.map((g) => '<span>#' + esc(g) + '</span>').join('') + '</span>' +
         '</span>' +
-        '<kbd class="enter">↵</kbd>' +
+        '<span class="result-keys"><kbd class="enter">↵</kbd>' + kbd(num(i)) + '</span>' +
       '</button></li>'
     ).join('') + '</ul>';
     renderPreview(list[state.sel]);
@@ -600,7 +619,7 @@ body.is-tool .search-btn { flex-basis: 320px; }
     const p = $('preview');
     p.hidden = false;
     p.innerHTML = shot(t) +
-      '<span class="preview-name">' + esc(t.name) + '</span>' +
+      '<span class="preview-name">' + emo(t) + '<span>' + esc(t.name) + '</span>' + '</span>' +
       '<span class="preview-desc">' + esc(t.description) + '</span>' +
       '<span class="preview-url">' + esc(t.external ? absUrl(t) : (location.host + location.pathname + '#' + t.slug)) + '</span>';
   }

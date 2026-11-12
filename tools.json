@@ -2,6 +2,7 @@
   {
     "slug": "color-bg-remover",
     "name": "Color Background Remover",
+    "emoji": "🪄",
     "description": "Remove solid-colour backgrounds from images, several colours at once.",
     "tags": ["images", "png", "transparency", "background"],
     "keywords": ["transparent", "remove", "colour", "color"],
@@ -11,6 +12,7 @@
   {
     "slug": "csv-to-excel",
     "name": "CSV to Excel Converter",
+    "emoji": "📊",
     "description": "Drop in CSV files, get an Excel workbook. Combines several CSVs into one file, one sheet each.",
     "tags": ["data", "csv", "excel", "convert"],
     "keywords": ["xlsx", "spreadsheet", "merge", "combine", "sheets"],
@@ -20,6 +22,7 @@
   {
     "slug": "fancy-screenshot",
     "name": "Perspective & Tilt-Shift Studio",
+    "emoji": "📐",
     "description": "Screenshots to 3D-perspective images with tilt-shift blur, camera angle and FOV, high-res PNG export.",
     "tags": ["images", "screenshot", "3d", "png"],
     "keywords": ["perspective", "tilt", "shift", "blur", "mockup", "export"],
@@ -29,6 +32,7 @@
   {
     "slug": "regenbogen",
     "name": "Regenbogen",
+    "emoji": "🌈",
     "description": "Browse and search 2,400+ colour palettes for data visualisation, filter by type and colourblind safety.",
     "tags": ["colors", "palettes", "dataviz"],
     "keywords": ["colour", "palette", "qualitative", "sequential", "divergent", "colorblind", "paletteer", "r", "ggplot", "hex"],
@@ -40,6 +44,7 @@
   {
     "slug": "image-resize-crop",
     "name": "Image Resize & Crop",
+    "emoji": "✂️",
     "description": "Crop, resize, rotate and flip an image, with aspect-ratio presets and PNG, JPEG or WebP export.",
     "tags": ["images", "png", "resize", "crop", "convert"],
     "keywords": ["scale", "shrink", "downscale", "aspect ratio", "rotate", "flip", "jpg", "jpeg", "webp", "compress"],

@@ -1,7 +1,7 @@
 // Validates tools.json. Run: node scripts/check-tools.mjs
 import { readFileSync, existsSync } from 'node:fs';
 
-const KNOWN = new Set(['slug', 'name', 'description', 'tags', 'keywords', 'url', 'screenshot', 'embed', 'source', 'added']);
+const KNOWN = new Set(['slug', 'name', 'emoji', 'description', 'tags', 'keywords', 'url', 'screenshot', 'embed', 'source', 'added']);
 const errors = [];
 let tools;
 try {
@@ -19,6 +19,11 @@ for (const [i, t] of (Array.isArray(tools) ? tools : []).entries()) {
   if (seen.has(t.slug)) errors.push(`${at}: duplicate slug`);
   seen.add(t.slug);
   if (!t.name) errors.push(`${at}: name is required`);
+  if (typeof t.emoji !== 'string' || !t.emoji.trim()) errors.push(`${at}: emoji is required (a single emoji)`);
+  else {
+    const g = [...new Intl.Segmenter('en', { granularity: 'grapheme' }).segment(t.emoji)].map((x) => x.segment);
+    if (g.length !== 1 || g.some((x) => !/\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(x))) errors.push(`${at}: emoji must be exactly one emoji, nothing else`);
+  }
   if (!t.description) errors.push(`${at}: description is required`);
   if (!Array.isArray(t.tags) || !t.tags.length) errors.push(`${at}: tags must be a non-empty array`);
   else if (t.tags.some((g) => !/^[a-z0-9-]+$/.test(g))) errors.push(`${at}: tags must be lowercase, no spaces or #`);
