@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDF Toolkit</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@cantoo/pdf-lib@2.11.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+:root {
+  --ink: #333333;
+  --muted: #666666;
+  --faint: #767676;
+  --line: #E8E8E8;
+  --line-strong: #D6D6D6;
+  --bg: #FFFFFF;
+  --soft: #FAFAFA;
+  --accent: #DC3522;
+  --accent-ink: #B32A1A;
+  --accent-bg: #FCEFED;
+  --radius: 6px;
+  --sans: 'Roboto', system-ui, sans-serif;
+  --mono: 'Roboto Mono', ui-monospace, monospace;
+  --chip-h: 36px;
+  --card: 150px;
+}
+@media (pointer: coarse) { :root { --chip-h: 44px; } }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 300 16px/1.5 var(--sans); }
+h1, h2 { font-weight: 300; margin: 0; }
+a { color: var(--accent-ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+code, kbd { font-family: var(--mono); }
+kbd { font-size: 12px; background: var(--soft); border: 1px solid var(--line-strong); border-radius: 4px; padding: 0 5px; }
+svg.i { width: 18px; height: 18px; flex: none; }
+
+.btn { height: 44px; padding: 0 16px; border: 1px solid var(--line-strong); border-radius: var(--radius);
+  background: var(--soft); color: var(--ink); font: inherit; font-weight: 400; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; }
+.btn:hover { border-color: #bbb; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { background: var(--accent-ink); border-color: var(--accent-ink); }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn.sm { height: 36px; padding: 0 12px; font-size: 14px; }
+input[type=text], input[type=password], input[type=number], select {
+  font: inherit; font-size: 14px; border: 1px solid var(--line-strong); border-radius: var(--radius);
+  background: var(--soft); padding: 0 10px; color: var(--ink); width: 100%; min-width: 0; height: 40px; }
+input[type=number] { font-family: var(--mono); font-size: 13px; padding: 0 6px; }
+input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; flex: none; }
+
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 360px; height: 100vh; }
+
+/* stage */
+.stage { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--soft); border-right: 1px solid var(--line); }
+.empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; color: var(--muted); padding: 28px; }
+.empty svg.big { width: 56px; height: 56px; color: var(--faint); stroke-width: 1.2; }
+.empty h1 { font-size: 22px; color: var(--ink); }
+.empty p { margin: 0; font-size: 14px; max-width: 440px; }
+.empty ul { margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--faint); display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: center; max-width: 440px; }
+.selbar { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--bg); flex-wrap: wrap; min-height: 53px; }
+.selbar .txt { font-size: 14px; color: var(--muted); margin-right: auto; }
+.selbar .txt b { color: var(--ink); font-weight: 400; }
+.icon-btn { width: 36px; height: 36px; flex: none; border: 1px solid var(--line-strong); border-radius: var(--radius);
+  background: var(--bg); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.icon-btn:hover { border-color: #bbb; }
+.icon-btn:disabled { opacity: .4; cursor: default; }
+@media (pointer: coarse) { .icon-btn { width: 44px; height: 44px; } }
+.grid-wrap { flex: 1; overflow: auto; min-height: 0; position: relative; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--card), 1fr)); gap: 22px 18px; padding: 20px; align-content: start; min-height: 100%; }
+.card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: pan-y; border-radius: var(--radius); padding: 6px; outline: none; }
+.card .th { position: relative; width: 100%; aspect-ratio: 1 / 1.2; display: flex; align-items: center; justify-content: center; }
+.card .pg { position: relative; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.08); max-width: 100%; max-height: 100%; }
+.card canvas { display: block; width: 100%; height: 100%; }
+.card .crop { position: absolute; box-shadow: 0 0 0 999px rgba(30,30,30,.35); outline: 1px dashed rgba(255,255,255,.9); pointer-events: none; }
+.card .pg { overflow: hidden; }
+.card .lbl { font: 12px var(--mono); color: var(--faint); display: flex; align-items: center; gap: 6px; }
+.card .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.card.sel { background: var(--accent-bg); }
+.card.sel .pg { box-shadow: 0 0 0 2px var(--accent), 0 2px 6px rgba(0,0,0,.08); }
+.card:focus-visible { outline: 2px solid var(--accent); }
+.card .acts { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 4px; opacity: 0; transition: opacity .12s; }
+.card:hover .acts, .card.sel .acts, .card:focus-within .acts { opacity: 1; }
+@media (pointer: coarse) { .card .acts { opacity: 1; } }
+.card .acts button { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line-strong); background: rgba(255,255,255,.95); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--ink); padding: 0; }
+.card .acts button:hover { border-color: var(--ink); }
+.card .acts svg { width: 16px; height: 16px; }
+.card.ghosted { opacity: .3; }
+.ghost { position: fixed; pointer-events: none; z-index: 20; width: var(--card); opacity: .92; transform: rotate(-2deg); }
+.ghost .pg { box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+.ghost .count { position: absolute; top: -8px; right: -8px; background: var(--accent); color: #fff; font: 500 12px var(--sans); border-radius: 10px; padding: 1px 7px; }
+.marker { position: absolute; width: 3px; background: var(--accent); border-radius: 2px; pointer-events: none; z-index: 5; }
+.busy { position: absolute; inset: 0; background: rgba(255,255,255,.8); display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--muted); z-index: 6; }
+
+/* panel */
+.panel { overflow: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+.sec { display: flex; flex-direction: column; gap: 10px; }
+.sec + .sec { border-top: 1px solid var(--line); padding-top: 20px; }
+.label { font-size: 13px; font-weight: 400; color: var(--faint); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.files { display: flex; flex-direction: column; gap: 6px; }
+.frow { border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 8px 8px 10px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; }
+.frow.active { border-color: var(--line-strong); background: var(--soft); }
+.frow .top { display: flex; align-items: center; gap: 8px; }
+.frow .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.frow .nm { flex: 1; min-width: 0; font-size: 14px; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.frow .sub { font: 12px var(--mono); color: var(--faint); white-space: nowrap; }
+.frow .x { width: 28px; height: 28px; border: 0; background: none; color: var(--faint); cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex: none; }
+.frow .x:hover { color: var(--ink); background: var(--line); }
+.frow .x svg { width: 16px; height: 16px; }
+.badge { font-size: 12px; border-radius: 4px; padding: 1px 6px; white-space: nowrap; }
+.badge.lock { background: var(--accent-bg); color: var(--accent-ink); }
+.badge.ok { background: #EEF6EE; color: #2F6B34; }
+.pw { display: flex; gap: 6px; }
+.pw .btn { height: 40px; }
+.pwerr { font-size: 12px; color: var(--accent-ink); }
+dl.meta { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 12px; row-gap: 3px; font-size: 13px; }
+dl.meta dt { color: var(--faint); white-space: nowrap; }
+dl.meta dd { margin: 0; color: var(--ink); word-break: break-word; font-weight: 400; }
+dl.meta dd.mono { font: 12px/1.6 var(--mono); }
+dl.meta dd.none { color: #aaa; font-weight: 300; }
+details > summary { cursor: pointer; font-size: 13px; color: var(--faint); font-weight: 400; list-style: none; display: flex; align-items: center; gap: 6px; min-height: 28px; }
+details > summary::before { content: ''; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform .15s; margin: 0 4px 0 2px; }
+details[open] > summary::before { transform: rotate(45deg); }
+details > summary::-webkit-details-marker { display: none; }
+details .body { display: flex; flex-direction: column; gap: 10px; padding-top: 8px; }
+pre.xmp { margin: 0; max-height: 240px; overflow: auto; font: 11px/1.5 var(--mono); background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px; white-space: pre-wrap; word-break: break-all; }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--faint); font-weight: 400; min-width: 0; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.four { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.check { display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; min-height: 28px; }
+.hint { font-size: 13px; color: var(--muted); }
+.hint b { font-weight: 400; color: var(--ink); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { height: var(--chip-h); padding: 0 11px; border: 1px solid var(--line-strong); border-radius: var(--radius);
+  background: var(--bg); color: var(--ink); font: 400 14px var(--sans); cursor: pointer; }
+.chip:hover { border-color: #bbb; }
+.chip[aria-pressed=true] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-ink); }
+.out { display: flex; flex-direction: column; gap: 8px; }
+.msg { font-size: 13px; padding: 8px 10px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--soft); color: var(--muted); }
+.msg.err { border-color: #f1c4be; background: var(--accent-bg); color: var(--accent-ink); }
+.keys { font-size: 12px; color: var(--faint); line-height: 1.9; }
+
+.drop { position: fixed; inset: 0; z-index: 30; pointer-events: none; background: rgba(252, 239, 237, .92);
+  border: 2px dashed var(--accent); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px;
+  color: var(--accent-ink); font-size: 22px; }
+.drop svg { width: 48px; height: 48px; }
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ink); color: #fff;
+  padding: 10px 16px; border-radius: var(--radius); font-size: 14px; font-weight: 400; z-index: 31; box-shadow: 0 4px 16px rgba(0,0,0,.15); max-width: calc(100% - 32px); }
+
+@media (max-width: 820px) {
+  .app { grid-template-columns: 1fr; height: auto; }
+  .stage { height: 64vh; min-height: 360px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .panel { overflow: visible; padding: 16px; }
+  :root { --card: 120px; }
+  .grid { padding: 14px; gap: 14px 10px; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-pdf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></symbol>
+    <symbol id="i-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></symbol>
+    <symbol id="i-rot-l" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4v5h5"/><path d="M3.5 9A9 9 0 1 1 6 18.4"/></symbol>
+    <symbol id="i-rot-r" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4v5h-5"/><path d="M20.5 9A9 9 0 1 0 18 18.4"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></symbol>
+    <symbol id="i-rev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M7 20l-3-3M7 20l3-3"/><path d="M17 20V4M17 4l-3 3M17 4l3 3"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <main class="stage" id="stage">
+    <div class="empty" id="empty">
+      <svg class="big"><use href="#i-pdf"/></svg>
+      <h1>Merge, split &amp; edit PDFs</h1>
+      <p>Drop PDFs anywhere, paste them, or choose files. Everything happens in your browser, nothing is uploaded.</p>
+      <button class="btn primary" id="pick"><svg class="i"><use href="#i-open"/></svg>Choose PDFs</button>
+      <ul><li>Merge</li><li>Split</li><li>Reorder</li><li>Rotate</li><li>Delete pages</li><li>Crop</li><li>Remove password</li><li>View &amp; edit metadata</li></ul>
+    </div>
+    <div class="selbar" id="selbar" hidden>
+      <div class="txt" id="selTxt"></div>
+      <button class="icon-btn" id="bUndo" title="Undo (Ctrl+Z)" aria-label="Undo"><svg class="i"><use href="#i-undo"/></svg></button>
+      <button class="icon-btn" id="bRedo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><svg class="i"><use href="#i-redo"/></svg></button>
+      <button class="icon-btn" id="bRotL" title="Rotate left (L)" aria-label="Rotate left"><svg class="i"><use href="#i-rot-l"/></svg></button>
+      <button class="icon-btn" id="bRotR" title="Rotate right (R)" aria-label="Rotate right"><svg class="i"><use href="#i-rot-r"/></svg></button>
+      <button class="icon-btn" id="bRev" title="Reverse order" aria-label="Reverse order"><svg class="i"><use href="#i-rev"/></svg></button>
+      <button class="icon-btn" id="bDup" title="Duplicate (D)" aria-label="Duplicate"><svg class="i"><use href="#i-copy"/></svg></button>
+      <button class="icon-btn" id="bDel" title="Delete (Del)" aria-label="Delete"><svg class="i"><use href="#i-trash"/></svg></button>
+      <button class="btn sm" id="bExtract" title="Download only the selected pages">Extract</button>
+    </div>
+    <div class="grid-wrap" id="gridWrap" hidden>
+      <div class="grid" id="grid" role="listbox" aria-multiselectable="true" aria-label="Pages"></div>
+    </div>
+    <div class="busy" id="busy" hidden>Working …</div>
+  </main>
+
+  <aside class="panel">
+    <section class="sec">
+      <div class="label"><span>Files</span><button class="btn sm" id="pick2" title="Add PDFs (Ctrl+O)"><svg class="i"><use href="#i-open"/></svg>Add</button></div>
+      <div class="files" id="files"><div class="hint">No PDFs yet. Several files are merged in the order you add them.</div></div>
+    </section>
+
+    <section class="sec" id="infoSec" hidden>
+      <div class="label"><span>Document info</span><span id="infoName" style="max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span></div>
+      <dl class="meta" id="meta"></dl>
+      <details id="moreMeta"><summary>All metadata</summary><div class="body"><dl class="meta" id="meta2"></dl><pre class="xmp" id="xmp" hidden></pre></div></details>
+    </section>
+
+    <fieldset id="tools" disabled style="border:0;padding:0;margin:0;min-width:0;display:flex;flex-direction:column;gap:20px">
+    <section class="sec">
+      <div class="label"><span>Crop</span><span id="cropTarget"></span></div>
+      <div class="four">
+        <label class="field">Top<input type="number" id="cT" min="0" step="1" inputmode="decimal"></label>
+        <label class="field">Right<input type="number" id="cR" min="0" step="1" inputmode="decimal"></label>
+        <label class="field">Bottom<input type="number" id="cB" min="0" step="1" inputmode="decimal"></label>
+        <label class="field">Left<input type="number" id="cL" min="0" step="1" inputmode="decimal"></label>
+      </div>
+      <div class="row">
+        <button class="btn sm" id="cAuto" title="Detect white margins on each page">Trim white margins</button>
+        <button class="btn sm" id="cClear">Remove crop</button>
+        <select id="cUnit" aria-label="Unit" style="width:auto;height:36px"><option value="mm">mm</option><option value="pt">pt</option><option value="in">in</option></select>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="label">Split</div>
+      <div class="chips" id="splitModes"></div>
+      <label class="field" id="splitNWrap">Pages per file<input type="number" id="splitN" min="1" step="1" value="2"></label>
+      <label class="field" id="splitRWrap">Ranges, one file each<input type="text" id="splitR" placeholder="1-3, 4, 5-end" spellcheck="false"></label>
+      <div class="hint" id="splitHint"></div>
+      <button class="btn" id="splitBtn"><svg class="i"><use href="#i-down"/></svg>Split &amp; download ZIP</button>
+    </section>
+
+    <section class="sec">
+      <div class="label">Output</div>
+      <label class="field">File name<input type="text" id="outName" spellcheck="false"></label>
+      <details id="metaEdit">
+        <summary>Metadata &amp; password</summary>
+        <div class="body">
+          <label class="field">Title<input type="text" id="mTitle"></label>
+          <label class="field">Author<input type="text" id="mAuthor"></label>
+          <div class="two">
+            <label class="field">Subject<input type="text" id="mSubject"></label>
+            <label class="field">Keywords<input type="text" id="mKeywords"></label>
+          </div>
+          <label class="check"><input type="checkbox" id="mStrip">Remove all other metadata</label>
+          <label class="field">Protect with a password (optional)<input type="password" id="mPw" autocomplete="new-password" placeholder="No password"></label>
+        </div>
+      </details>
+      <div class="hint" id="outHint"></div>
+      <button class="btn primary" id="dl"><svg class="i"><use href="#i-down"/></svg>Download PDF</button>
+      <div class="msg" id="msg" role="status" hidden></div>
+    </section>
+    </fieldset>
+    <div class="keys">Click to select, <kbd>Shift</kbd>/<kbd>Ctrl</kbd>-click for more, drag to reorder.<br><kbd>R</kbd>/<kbd>L</kbd> rotate · <kbd>Del</kbd> delete · <kbd>Ctrl</kbd>+<kbd>A</kbd> select all · <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · <kbd>Ctrl</kbd>+<kbd>S</kbd> download</div>
+  </aside>
+</div>
+
+<input type="file" id="fileInput" accept="application/pdf,.pdf" multiple hidden>
+<div class="drop" id="drop" hidden><svg><use href="#i-open"/></svg>Drop PDFs to add them</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const { PDFDocument, PDFName, PDFHexString, degrees } = PDFLib;
+  const PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/';
+  const COLORS = ['#DC3522', '#2F6FB5', '#2E8B57', '#C77C02', '#7B4FB5', '#0F8C8C', '#B5487A', '#5A6B7B'];
+  const PT = { mm: 72 / 25.4, pt: 1, in: 72 };
+  const KEY = 'pdf-toolkit:prefs';
+
+  const prefs = { unit: 'mm', split: 'each' };
+  try { Object.assign(prefs, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch {}
+  const savePrefs = () => { try { localStorage.setItem(KEY, JSON.stringify(prefs)); } catch {} };
+
+  let pdfjs;
+  const files = [];      // { id, name, size, bytes, color, js (pdfjs doc), needsPw, password, encrypted, encInfo, info, pageInfo[] }
+  let pages = [];        // { uid, file, index, rot, crop: {t,r,b,l} | null }
+  const sel = new Set(); // uids
+  let anchor = null, activeFile = null, uidN = 1, fileN = 1;
+  const undoStack = [], redoStack = [];
+
+  // ---------- utilities ----------
+  const fmtBytes = (b) => b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : (b / 1048576).toFixed(2) + ' MB';
+  const base = (n) => n.replace(/\.pdf$/i, '');
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const fileById = (id) => files.find((f) => f.id === id);
+  let tt;
+  const toast = (t) => { const el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(tt); tt = setTimeout(() => el.hidden = true, 2600); };
+  const busy = (t) => { $('busy').hidden = !t; if (t) $('busy').textContent = t; };
+  function showMsg(t, err) { const m = $('msg'); m.hidden = !t; m.textContent = t || ''; m.className = 'msg' + (err ? ' err' : ''); }
+
+  const SIZES = [['A3', 842, 1191], ['A4', 595, 842], ['A5', 420, 595], ['A6', 298, 420], ['B5', 499, 709], ['Letter', 612, 792], ['Legal', 612, 1008], ['Tabloid', 792, 1224]];
+  function sizeName(w, h) {
+    const a = Math.min(w, h), b = Math.max(w, h);
+    const hit = SIZES.find(([, x, y]) => Math.abs(x - a) < 3 && Math.abs(y - b) < 3);
+    const mm = `${Math.round(w / PT.mm)} × ${Math.round(h / PT.mm)} mm`;
+    return hit ? `${hit[0]} ${w > h ? 'landscape' : 'portrait'} (${mm})` : mm;
+  }
+
+  async function getPdfjs() {
+    if (pdfjs) return pdfjs;
+    try { pdfjs = await import(PDFJS + 'pdf.min.mjs'); } catch { throw new Error('Couldn\'t load the PDF renderer. Are you offline?'); }
+    pdfjs.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.mjs';
+    return pdfjs;
+  }
+
+  // ---------- history ----------
+  const snap = () => JSON.stringify(pages);
+  function commit() { undoStack.push(snap()); if (undoStack.length > 100) undoStack.shift(); redoStack.length = 0; }
+  function undo() { if (!undoStack.length) return; redoStack.push(snap()); pages = JSON.parse(undoStack.pop()); pruneSel(); render(); }
+  function redo() { if (!redoStack.length) return; undoStack.push(snap()); pages = JSON.parse(redoStack.pop()); pruneSel(); render(); }
+  const pruneSel = () => { const ids = new Set(pages.map((p) => p.uid)); for (const u of [...sel]) if (!ids.has(u)) sel.delete(u); };
+
+  // ---------- loading ----------
+  async function addFiles(list) {
+    const pdfs = [...list].filter((f) => /\.pdf$/i.test(f.name) || f.type === 'application/pdf');
+    const skipped = [...list].length - pdfs.length;
+    if (!pdfs.length) { toast(skipped ? 'Those aren\'t PDF files.' : 'No files.'); return; }
+    busy('Opening …');
+    try { await getPdfjs(); } catch (e) { busy(); toast(e.message); return; }
+    const errs = [];
+    for (const f of pdfs) {
+      const file = { id: fileN++, name: f.name, size: f.size, bytes: new Uint8Array(await f.arrayBuffer()), color: COLORS[(fileN - 2) % COLORS.length] };
+      try {
+        const probe = await PDFDocument.load(file.bytes, { ignoreEncryption: true, updateMetadata: false, throwOnInvalidObject: false });
+        file.encrypted = probe.isEncrypted;
+        if (file.encrypted) file.encInfo = encInfo(probe);
+      } catch { /* pdf.js may still manage */ }
+      files.push(file);
+      const ok = await openJs(file, '');
+      if (ok === 'bad') { files.splice(files.indexOf(file), 1); errs.push(`“${f.name}” isn't a readable PDF.`); }
+    }
+    busy();
+    if (skipped) errs.push(`Skipped ${skipped} non-PDF file${skipped > 1 ? 's' : ''}.`);
+    showMsg(errs.join(' '), true);
+    if (!activeFile && files.length) activeFile = files[0].id;
+    if (!$('outName').dataset.touched) $('outName').value = defaultName();
+    prefillMeta();
+    render(); renderFiles(); renderInfo();
+  }
+
+  function encInfo(doc) {
+    try {
+      const enc = doc.context.lookup(doc.context.trailerInfo.Encrypt);
+      const V = enc.lookup(PDFName.of('V'))?.asNumber?.(), len = enc.lookup(PDFName.of('Length'))?.asNumber?.();
+      let cfm = '';
+      try { cfm = String(enc.lookup(PDFName.of('CF')).lookup(PDFName.of('StdCF')).get(PDFName.of('CFM'))); } catch {}
+      if (V === 5) return 'AES-256';
+      if (V === 4) return /AESV2/.test(cfm) ? 'AES-128' : 'RC4 128-bit';
+      if (V === 2) return `RC4 ${len || 128}-bit`;
+      if (V === 1) return 'RC4 40-bit';
+      return 'Yes';
+    } catch { return 'Yes'; }
+  }
+
+  async function openJs(file, password) {
+    try {
+      file.js = await pdfjs.getDocument({ data: file.bytes.slice(), password, isEvalSupported: false }).promise;
+    } catch (e) {
+      if (e?.name === 'PasswordException') { file.needsPw = true; file.pwWrong = !!password; return 'pw'; }
+      return 'bad';
+    }
+    file.needsPw = false; file.password = password; file.encrypted ||= false;
+    file.pageInfo = [];
+    for (let i = 1; i <= file.js.numPages; i++) {
+      const p = await file.js.getPage(i);
+      file.pageInfo.push({ view: p.view, rotate: p.rotate });
+    }
+    try {
+      const md = await file.js.getMetadata();
+      file.info = md.info || {};
+      file.xmp = md.metadata ? md.metadata.getRaw?.() || '' : '';
+      file.xmpAll = md.metadata ? md.metadata.getAll() : null;
+      file.perms = await file.js.getPermissions();
+      file.attachments = Object.keys((await file.js.getAttachments()) || {}).length;
+      file.outline = ((await file.js.getOutline()) || []).length;
+      file.marked = (await file.js.getMarkInfo())?.Marked || false;
+    } catch {}
+    const before = snap();
+    for (let i = 0; i < file.js.numPages; i++) pages.push({ uid: uidN++, file: file.id, index: i, rot: 0, crop: null });
+    undoStack.push(before); redoStack.length = 0;
+    return 'ok';
+  }
+
+  function defaultName() {
+    const used = [...new Set(pages.map((p) => p.file))].map(fileById).filter(Boolean);
+    if (!used.length) return 'document.pdf';
+    if (used.length === 1) return base(used[0].name) + '-edited.pdf';
+    return 'merged-' + used.length + '-files.pdf';
+  }
+  function prefillMeta() {
+    const f = files.find((x) => x.info);
+    if (!f || $('mTitle').dataset.filled) return;
+    $('mTitle').value = f.info.Title || ''; $('mAuthor').value = f.info.Author || '';
+    $('mSubject').value = f.info.Subject || ''; $('mKeywords').value = f.info.Keywords || '';
+    $('mTitle').dataset.filled = '1';
+  }
+
+  // ---------- files panel ----------
+  function renderFiles() {
+    const box = $('files');
+    if (!files.length) { box.innerHTML = '<div class="hint">No PDFs yet. Several files are merged in the order you add them.</div>'; return; }
+    box.innerHTML = '';
+    for (const f of files) {
+      const row = document.createElement('div');
+      row.className = 'frow' + (f.id === activeFile ? ' active' : '');
+      const n = f.js ? f.js.numPages : '?';
+      const used = pages.filter((p) => p.file === f.id).length;
+      const status = f.needsPw ? '<span class="badge lock">Locked</span>'
+        : f.encrypted ? '<span class="badge ok" title="The download will not have a password or restrictions">Unlocked</span>' : '';
+      row.innerHTML = `<div class="top"><span class="dot" style="background:${f.color}"></span><span class="nm" title="${esc(f.name)}">${esc(f.name)}</span>${status}
+        <span class="sub">${f.js ? (used !== n ? used + '/' : '') + n + ' p' : ''} · ${fmtBytes(f.size)}</span>
+        <button class="x" title="Remove file" aria-label="Remove ${esc(f.name)}"><svg><use href="#i-x"/></svg></button></div>`;
+      if (f.needsPw) {
+        const pw = document.createElement('form'); pw.className = 'pw';
+        pw.innerHTML = `<input type="password" placeholder="Password" aria-label="Password for ${esc(f.name)}" autocomplete="off"><button class="btn sm primary" type="submit">Unlock</button>`;
+        pw.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          busy('Unlocking …');
+          const r = await openJs(f, pw.querySelector('input').value);
+          busy();
+          if (r === 'ok') { activeFile = f.id; if (!$('outName').dataset.touched) $('outName').value = defaultName(); prefillMeta(); render(); renderInfo(); }
+          renderFiles();
+          if (r === 'pw') { const inp = $('files').querySelectorAll('.frow')[files.indexOf(f)]?.querySelector('input'); inp?.focus(); }
+        });
+        row.appendChild(pw);
+        if (f.pwWrong) { const e = document.createElement('div'); e.className = 'pwerr'; e.textContent = 'Wrong password, try again.'; row.appendChild(e); }
+        else { const e = document.createElement('div'); e.className = 'hint'; e.style.fontSize = '12px'; e.textContent = 'This PDF needs a password to open. The download will have it removed.'; row.appendChild(e); }
+      }
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('.x')) { removeFile(f.id); return; }
+        if (e.target.closest('form')) return;
+        activeFile = f.id; renderFiles(); renderInfo();
+      });
+      box.appendChild(row);
+    }
+    const focusPw = box.querySelector('.frow input[type=password]');
+    if (focusPw && document.activeElement?.tagName !== 'INPUT') focusPw.focus();
+  }
+
+  function removeFile(id) {
+    commit();
+    const i = files.findIndex((f) => f.id === id);
+    if (i < 0) return;
+    files[i].js?.destroy();
+    files.splice(i, 1);
+    pages = pages.filter((p) => p.file !== id);
+    for (const k of [...thumbs.keys()]) if (k.startsWith(id + ':')) thumbs.delete(k);
+    // undo cannot restore a removed file's pages
+    undoStack.length = 0; redoStack.length = 0;
+    pruneSel();
+    if (activeFile === id) activeFile = files[0]?.id ?? null;
+    if (!$('outName').dataset.touched) $('outName').value = defaultName();
+    render(); renderFiles(); renderInfo();
+  }
+
+  // ---------- metadata panel ----------
+  function pdfDate(s) {
+    if (!s) return '';
+    try { const d = pdfjs.PDFDateString.toDateObject(s); if (d) return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }); } catch {}
+    return s;
+  }
+  const PERMS = [[4, 'Printing'], [2048, 'High-quality printing'], [8, 'Changing the document'], [16, 'Copying text and images'], [32, 'Comments'], [256, 'Filling forms'], [512, 'Accessibility extraction'], [1024, 'Assembling pages']];
+
+  function renderInfo() {
+    const f = fileById(activeFile);
+    $('infoSec').hidden = !f;
+    if (!f) return;
+    $('infoName').textContent = files.length > 1 ? f.name : '';
+    const i = f.info || {};
+    const rows = [];
+    const add = (k, v, cls) => rows.push([k, v, cls]);
+    if (f.needsPw) {
+      add('Status', 'Password required to read this file');
+      add('File size', fmtBytes(f.size));
+      add('Encryption', f.encInfo || 'Yes');
+      $('meta').innerHTML = rowsHtml(rows); $('moreMeta').hidden = true; return;
+    }
+    $('moreMeta').hidden = false;
+    add('Title', i.Title); add('Author', i.Author); add('Subject', i.Subject); add('Keywords', i.Keywords);
+    add('Created', pdfDate(i.CreationDate)); add('Modified', pdfDate(i.ModDate));
+    add('Application', i.Creator); add('PDF producer', i.Producer);
+    add('Pages', String(f.js.numPages));
+    const sizes = new Map();
+    for (const p of f.pageInfo) { const [x0, y0, x1, y1] = p.view; const r = p.rotate % 180; const w = r ? y1 - y0 : x1 - x0, h = r ? x1 - x0 : y1 - y0; const k = sizeName(w, h); sizes.set(k, (sizes.get(k) || 0) + 1); }
+    add('Page size', [...sizes].map(([k, n]) => sizes.size > 1 ? `${k} ×${n}` : k).join(', '));
+    add('File size', fmtBytes(f.size));
+    add('PDF version', i.PDFFormatVersion);
+    add('Encryption', f.encrypted ? (f.encInfo || 'Yes') + (f.password ? ' (opened with password)' : ' (no open password)') : 'None');
+    const denied = f.perms ? PERMS.filter(([b]) => !f.perms.includes(b)).map(([, t]) => t) : [];
+    add('Restrictions', denied.length ? denied.join(', ') + ' not allowed' : 'None');
+    $('meta').innerHTML = rowsHtml(rows);
+
+    const r2 = [];
+    const add2 = (k, v, cls) => r2.push([k, v, cls]);
+    add2('Fast web view', i.IsLinearized ? 'Yes' : 'No');
+    add2('Tagged (accessible)', f.marked ? 'Yes' : 'No');
+    add2('Form fields', i.IsAcroFormPresent ? 'Yes' : i.IsXFAPresent ? 'Yes (XFA)' : 'No');
+    add2('Digital signatures', i.IsSignaturesPresent ? 'Yes' : 'No');
+    add2('Bookmarks', f.outline ? f.outline + ' top-level' : 'None');
+    add2('Attachments', f.attachments ? String(f.attachments) : 'None');
+    if (i.Trapped) add2('Trapped', String(i.Trapped.name || i.Trapped));
+    for (const [k, v] of Object.entries(i.Custom || {})) add2(k, typeof v === 'object' ? (v?.name || JSON.stringify(v)) : String(v), 'mono');
+    if (f.xmpAll) for (const [k, v] of Object.entries(f.xmpAll)) add2(k, Array.isArray(v) ? v.join(', ') : String(v), 'mono');
+    $('meta2').innerHTML = rowsHtml(r2);
+    $('xmp').hidden = !f.xmp; $('xmp').textContent = f.xmp || '';
+  }
+  const rowsHtml = (rows) => rows.map(([k, v, cls]) => `<dt>${esc(k)}</dt><dd class="${v ? cls || '' : 'none'}">${v ? esc(v) : '–'}</dd>`).join('');
+
+  // ---------- thumbnails ----------
+  const thumbs = new Map(); // key → canvas
+  const queue = []; let running = 0;
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) { const c = e.target; io.unobserve(c); request(c); }
+  }, { root: $('gridWrap'), rootMargin: '400px' });
+
+  function request(card) {
+    const p = pages.find((x) => x.uid === +card.dataset.uid);
+    if (!p) return;
+    const k = tkey(p);
+    if (thumbs.has(k)) { place(card, p); return; }
+    queue.push(card); pump();
+  }
+  const tkey = (p) => `${p.file}:${p.index}:${(p.rot % 360 + 360) % 360}`;
+  async function pump() {
+    while (running < 2 && queue.length) {
+      const card = queue.shift();
+      const p = pages.find((x) => x.uid === +card.dataset.uid);
+      if (!p || !card.isConnected) continue;
+      const k = tkey(p);
+      if (thumbs.has(k)) { place(card, p); continue; }
+      running++;
+      renderThumb(p).then((cv) => { thumbs.set(k, cv); document.querySelectorAll(`.card[data-key="${k}"]`).forEach((c) => place(c, pages.find((x) => x.uid === +c.dataset.uid))); })
+        .catch(() => {}).finally(() => { running--; pump(); });
+    }
+  }
+  async function renderThumb(p) {
+    const f = fileById(p.file);
+    const page = await f.js.getPage(p.index + 1);
+    const rot = (page.rotate + p.rot) % 360;
+    const vp1 = page.getViewport({ scale: 1, rotation: rot });
+    const target = 180 * Math.min(2, window.devicePixelRatio || 1);
+    const scale = target / Math.max(vp1.width, vp1.height);
+    const vp = page.getViewport({ scale, rotation: rot });
+    const cv = document.createElement('canvas');
+    cv.width = Math.ceil(vp.width); cv.height = Math.ceil(vp.height);
+    await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+    return cv;
+  }
+  // displayed size in points (after rotation) and crop overlay
+  function dims(p) {
+    const info = fileById(p.file).pageInfo[p.index];
+    const [x0, y0, x1, y1] = info.view;
+    const r = ((info.rotate + p.rot) % 360 + 360) % 360;
+    return r % 180 ? { w: y1 - y0, h: x1 - x0 } : { w: x1 - x0, h: y1 - y0 };
+  }
+  function place(card, p) {
+    if (!p) return;
+    const pg = card.querySelector('.pg');
+    const d = dims(p);
+    const ratio = d.w / d.h;
+    // fit page box into the square-ish thumb area
+    pg.style.aspectRatio = d.w + ' / ' + d.h;
+    pg.style.width = ratio >= 1 / 1.2 ? '100%' : 'auto';
+    pg.style.height = ratio >= 1 / 1.2 ? 'auto' : '100%';
+    const cv = thumbs.get(tkey(p));
+    const old = pg.querySelector('canvas');
+    if (cv) {
+      const c = old && old.dataset.key === tkey(p) ? old : cv.cloneNode();
+      if (c !== old) { c.dataset.key = tkey(p); c.getContext('2d').drawImage(cv, 0, 0); old ? old.replaceWith(c) : pg.prepend(c); }
+    }
+    let ov = pg.querySelector('.crop');
+    if (p.crop && (p.crop.t || p.crop.r || p.crop.b || p.crop.l)) {
+      if (!ov) { ov = document.createElement('div'); ov.className = 'crop'; pg.appendChild(ov); }
+      ov.style.top = (p.crop.t / d.h * 100) + '%'; ov.style.bottom = (p.crop.b / d.h * 100) + '%';
+      ov.style.left = (p.crop.l / d.w * 100) + '%'; ov.style.right = (p.crop.r / d.w * 100) + '%';
+    } else if (ov) ov.remove();
+  }
+
+  // ---------- grid ----------
+  function render() {
+    const has = pages.length > 0 || files.length > 0;
+    $('empty').hidden = has; $('gridWrap').hidden = !has; $('selbar').hidden = !has;
+    $('tools').disabled = !pages.length;
+    const grid = $('grid');
+    const existing = new Map([...grid.children].map((c) => [+c.dataset.uid, c]));
+    const multi = new Set(pages.map((p) => p.file)).size > 1 || files.length > 1;
+    const frag = document.createDocumentFragment();
+    pages.forEach((p, i) => {
+      let card = existing.get(p.uid);
+      if (!card) {
+        card = document.createElement('div');
+        card.className = 'card'; card.dataset.uid = p.uid; card.tabIndex = -1; card.setAttribute('role', 'option');
+        card.innerHTML = `<div class="th"><div class="pg"></div></div><div class="lbl"></div>
+          <div class="acts"><button data-a="rotl" title="Rotate left" aria-label="Rotate left"><svg><use href="#i-rot-l"/></svg></button><button data-a="rotr" title="Rotate right" aria-label="Rotate right"><svg><use href="#i-rot-r"/></svg></button><button data-a="del" title="Delete page" aria-label="Delete page"><svg><use href="#i-trash"/></svg></button></div>`;
+      }
+      existing.delete(p.uid);
+      const f = fileById(p.file);
+      card.dataset.key = tkey(p);
+      card.classList.toggle('sel', sel.has(p.uid));
+      card.setAttribute('aria-selected', sel.has(p.uid));
+      card.title = `${f.name}, page ${p.index + 1}`;
+      card.querySelector('.lbl').innerHTML = (multi ? `<span class="dot" style="background:${f.color}"></span>` : '') + (i + 1) + (p.index !== i || multi ? `<span style="opacity:.7">· p${p.index + 1}</span>` : '');
+      place(card, p);
+      if (!thumbs.has(tkey(p))) io.observe(card);
+      frag.appendChild(card);
+    });
+    grid.replaceChildren(frag);
+    for (const c of existing.values()) io.unobserve(c);
+    renderSel();
+    renderCrop();
+    renderSplit();
+    renderOut();
+  }
+
+  function renderSel() {
+    const n = sel.size;
+    $('selTxt').innerHTML = n ? `<b>${n}</b> of ${pages.length} pages selected` : `<b>${pages.length}</b> pages · click to select`;
+    for (const id of ['bRotL', 'bRotR', 'bDel', 'bExtract', 'bDup']) $(id).disabled = !n;
+    $('bRev').disabled = pages.length < 2;
+    $('bUndo').disabled = !undoStack.length; $('bRedo').disabled = !redoStack.length;
+    $('bRev').title = n > 1 ? 'Reverse selected pages' : 'Reverse order';
+    document.querySelectorAll('.card').forEach((c) => { const on = sel.has(+c.dataset.uid); c.classList.toggle('sel', on); c.setAttribute('aria-selected', on); });
+  }
+
+  const targets = () => sel.size ? pages.filter((p) => sel.has(p.uid)) : pages;
+
+  function select(uid, e) {
+    const idx = pages.findIndex((p) => p.uid === uid);
+    if (e && e.shiftKey && anchor != null) {
+      const a = pages.findIndex((p) => p.uid === anchor);
+      if (!(e.ctrlKey || e.metaKey)) sel.clear();
+      const [s, t] = a < idx ? [a, idx] : [idx, a];
+      for (let i = s; i <= t; i++) sel.add(pages[i].uid);
+    } else if (e && (e.ctrlKey || e.metaKey)) {
+      sel.has(uid) ? sel.delete(uid) : sel.add(uid); anchor = uid;
+    } else {
+      const only = sel.size === 1 && sel.has(uid);
+      sel.clear(); if (!only) sel.add(uid); anchor = uid;
+    }
+    renderSel(); renderCrop(); renderSplit(); renderOut();
+  }
+
+  function rotate(list, d) { if (!list.length) return; commit(); for (const p of list) p.rot = ((p.rot + d) % 360 + 360) % 360; render(); }
+  function del(list) {
+    if (!list.length) return;
+    commit();
+    const ids = new Set(list.map((p) => p.uid));
+    pages = pages.filter((p) => !ids.has(p.uid)); pruneSel();
+    render(); renderFiles();
+    toast(`Deleted ${list.length} page${list.length > 1 ? 's' : ''}. Ctrl+Z to undo.`);
+  }
+  function duplicate(list) {
+    if (!list.length) return;
+    commit();
+    const last = Math.max(...list.map((p) => pages.indexOf(p)));
+    const copies = list.map((p) => ({ ...p, uid: uidN++, crop: p.crop ? { ...p.crop } : null }));
+    pages.splice(last + 1, 0, ...copies);
+    sel.clear(); copies.forEach((c) => sel.add(c.uid));
+    render(); renderFiles();
+  }
+  function reverse() {
+    commit();
+    if (sel.size > 1) {
+      const idx = pages.map((p, i) => sel.has(p.uid) ? i : -1).filter((i) => i >= 0);
+      const items = idx.map((i) => pages[i]).reverse();
+      idx.forEach((i, k) => pages[i] = items[k]);
+    } else pages.reverse();
+    render();
+  }
+  function moveTo(uids, at) {
+    // at: index in pages before which to insert (computed before removal)
+    const moving = pages.filter((p) => uids.has(p.uid));
+    const before = pages.slice(0, at).filter((p) => !uids.has(p.uid)).length;
+    const rest = pages.filter((p) => !uids.has(p.uid));
+    const next = [...rest.slice(0, before), ...moving, ...rest.slice(before)];
+    if (next.every((p, i) => p === pages[i])) return;
+    commit();
+    pages = next; render();
+  }
+
+  // pointer: click to select, drag to reorder
+  const grid = $('grid');
+  let drag = null, lastDrag = 0;
+  grid.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    const btn = e.target.closest('.acts button');
+    const card = e.target.closest('.card');
+    if (btn || !card) return;
+    drag = { card, uid: +card.dataset.uid, x: e.clientX, y: e.clientY, started: false, pid: e.pointerId, e };
+  });
+  window.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.pid) return;
+    if (!drag.started) {
+      if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 8) return;
+      if (e.pointerType === 'touch' && Math.abs(e.clientY - drag.y) > Math.abs(e.clientX - drag.x)) { drag = null; return; } // vertical swipe scrolls
+      startDrag();
+    }
+    e.preventDefault();
+    drag.ghost.style.left = (e.clientX - 40) + 'px'; drag.ghost.style.top = (e.clientY - 40) + 'px';
+    dropIndex(e.clientX, e.clientY);
+    autoScroll(e.clientY);
+  });
+  window.addEventListener('pointerup', (e) => {
+    if (!drag || e.pointerId !== drag.pid) return;
+    const d = drag; drag = null;
+    if (!d.started) { select(d.uid, e); return; }
+    lastDrag = Date.now();
+    cancelAnimationFrame(scrollRaf); scrollRaf = 0;
+    d.ghost.remove(); d.marker.remove();
+    document.querySelectorAll('.card.ghosted').forEach((c) => c.classList.remove('ghosted'));
+    if (d.at != null) moveTo(d.uids, d.at);
+  });
+  window.addEventListener('pointercancel', () => { if (drag?.started) { drag.ghost.remove(); drag.marker.remove(); document.querySelectorAll('.card.ghosted').forEach((c) => c.classList.remove('ghosted')); } drag = null; });
+
+  function startDrag() {
+    drag.started = true;
+    if (!sel.has(drag.uid)) { sel.clear(); sel.add(drag.uid); anchor = drag.uid; renderSel(); }
+    drag.uids = new Set(sel);
+    document.querySelectorAll('.card').forEach((c) => { if (drag.uids.has(+c.dataset.uid)) c.classList.add('ghosted'); });
+    const g = document.createElement('div'); g.className = 'ghost card';
+    g.appendChild(drag.card.querySelector('.th').cloneNode(true));
+    const src = drag.card.querySelector('canvas'), dst = g.querySelector('canvas');
+    if (src && dst) dst.getContext('2d').drawImage(src, 0, 0);
+    if (drag.uids.size > 1) { const c = document.createElement('span'); c.className = 'count'; c.textContent = drag.uids.size; g.appendChild(c); }
+    document.body.appendChild(g); drag.ghost = g;
+    const m = document.createElement('div'); m.className = 'marker'; m.hidden = true; grid.appendChild(m); drag.marker = m;
+  }
+  function dropIndex(x, y) {
+    const cards = [...grid.querySelectorAll('.card')];
+    let best = null, bd = Infinity;
+    cards.forEach((c, i) => {
+      const r = c.getBoundingClientRect();
+      const cy = r.top + r.height / 2;
+      const dy = Math.abs(y - cy) > r.height / 2 ? Math.abs(y - cy) : 0;
+      const d = dy * 4 + Math.min(Math.abs(x - r.left), Math.abs(x - r.right));
+      if (d < bd) { bd = d; best = { i, r, after: x > r.left + r.width / 2 }; }
+    });
+    if (!best) return;
+    drag.at = best.i + (best.after ? 1 : 0);
+    const gr = grid.getBoundingClientRect();
+    const m = drag.marker; m.hidden = false;
+    m.style.left = ((best.after ? best.r.right + 9 : best.r.left - 9) - gr.left - 1) + 'px';
+    m.style.top = (best.r.top - gr.top) + 'px'; m.style.height = best.r.height + 'px';
+  }
+  let scrollRaf = 0, scrollV = 0;
+  function autoScroll(y) {
+    const r = $('gridWrap').getBoundingClientRect();
+    scrollV = y < r.top + 50 ? -12 : y > r.bottom - 50 ? 12 : 0;
+    if (scrollV && !scrollRaf) {
+      const step = () => { if (!drag || !scrollV) { scrollRaf = 0; return; } $('gridWrap').scrollTop += scrollV; scrollRaf = requestAnimationFrame(step); };
+      scrollRaf = requestAnimationFrame(step);
+    }
+  }
+
+  grid.addEventListener('click', (e) => {
+    const btn = e.target.closest('.acts button');
+    if (btn) {
+      const p = pages.find((x) => x.uid === +btn.closest('.card').dataset.uid);
+      const list = sel.has(p.uid) ? targets() : [p];
+      if (btn.dataset.a === 'rotl') rotate(list, -90);
+      else if (btn.dataset.a === 'rotr') rotate(list, 90);
+      else if (btn.dataset.a === 'del') del(list);
+      return;
+    }
+    if (!e.target.closest('.card') && !drag && Date.now() - lastDrag > 300) { sel.clear(); renderSel(); renderCrop(); renderSplit(); renderOut(); }
+  });
+
+  $('bRotL').addEventListener('click', () => rotate(pages.filter((p) => sel.has(p.uid)), -90));
+  $('bRotR').addEventListener('click', () => rotate(pages.filter((p) => sel.has(p.uid)), 90));
+  $('bDel').addEventListener('click', () => del(pages.filter((p) => sel.has(p.uid))));
+  $('bDup').addEventListener('click', () => duplicate(pages.filter((p) => sel.has(p.uid))));
+  $('bRev').addEventListener('click', reverse);
+  $('bUndo').addEventListener('click', undo);
+  $('bRedo').addEventListener('click', redo);
+  $('bExtract').addEventListener('click', async () => {
+    const list = pages.filter((p) => sel.has(p.uid));
+    if (!list.length) return;
+    await save(list, base($('outName').value || 'document') + '-pages-' + rangeLabel(list) + '.pdf');
+  });
+  function rangeLabel(list) {
+    const nums = list.map((p) => pages.indexOf(p) + 1).sort((a, b) => a - b);
+    const parts = []; let s = nums[0], prev = nums[0];
+    for (const n of nums.slice(1).concat(Infinity)) { if (n !== prev + 1) { parts.push(s === prev ? s : s + '-' + prev); s = n; } prev = n; }
+    const t = parts.join('_');
+    return t.length > 40 ? list.length : t;
+  }
+
+  // ---------- crop ----------
+  const unit = () => PT[prefs.unit];
+  $('cUnit').value = prefs.unit;
+  $('cUnit').addEventListener('change', () => { prefs.unit = $('cUnit').value; savePrefs(); renderCrop(); });
+  function renderCrop() {
+    const list = targets();
+    $('cropTarget').textContent = !pages.length ? '' : sel.size ? `${sel.size} selected page${sel.size > 1 ? 's' : ''}` : 'all pages';
+    const c = list[0]?.crop || { t: 0, r: 0, b: 0, l: 0 };
+    const same = list.every((p) => ['t', 'r', 'b', 'l'].every((k) => Math.abs((p.crop?.[k] || 0) - c[k]) < .01));
+    const step = prefs.unit === 'in' ? 0.05 : 1;
+    for (const [id, k] of [['cT', 't'], ['cR', 'r'], ['cB', 'b'], ['cL', 'l']]) {
+      const el = $(id); el.step = step;
+      if (document.activeElement === el) continue;
+      el.value = same ? +(c[k] / unit()).toFixed(prefs.unit === 'in' ? 2 : 1) : '';
+      el.placeholder = same ? '0' : 'mixed';
+    }
+  }
+  let cropCommitted = false;
+  for (const [id, k] of [['cT', 't'], ['cR', 'r'], ['cB', 'b'], ['cL', 'l']]) {
+    $(id).addEventListener('focus', () => { cropCommitted = false; });
+    $(id).addEventListener('input', () => {
+      const v = parseFloat($(id).value);
+      if (!Number.isFinite(v) && $(id).value !== '') return;
+      if (!cropCommitted) { commit(); cropCommitted = true; }
+      for (const p of targets()) {
+        const d = dims(p);
+        p.crop = p.crop || { t: 0, r: 0, b: 0, l: 0 };
+        const max = (k === 't' || k === 'b' ? d.h - p.crop[k === 't' ? 'b' : 't'] : d.w - p.crop[k === 'l' ? 'r' : 'l']) - 10;
+        p.crop[k] = Math.max(0, Math.min(max, (v || 0) * unit()));
+      }
+      updatePlacements();
+    });
+  }
+  function updatePlacements() { document.querySelectorAll('.card').forEach((c) => place(c, pages.find((p) => p.uid === +c.dataset.uid))); renderOut(); }
+  $('cClear').addEventListener('click', () => { commit(); for (const p of targets()) p.crop = null; updatePlacements(); renderCrop(); });
+  $('cAuto').addEventListener('click', async () => {
+    const list = targets();
+    commit();
+    busy('Detecting margins …');
+    let n = 0;
+    for (const p of list) {
+      busy(`Detecting margins … ${++n} of ${list.length}`);
+      try { p.crop = await whiteMargins(p); } catch {}
+    }
+    busy();
+    updatePlacements(); renderCrop();
+  });
+  async function whiteMargins(p) {
+    const f = fileById(p.file);
+    const page = await f.js.getPage(p.index + 1);
+    const rot = (page.rotate + p.rot) % 360;
+    const vp1 = page.getViewport({ scale: 1, rotation: rot });
+    const scale = 600 / Math.max(vp1.width, vp1.height);
+    const vp = page.getViewport({ scale, rotation: rot });
+    const cv = document.createElement('canvas'); cv.width = Math.ceil(vp.width); cv.height = Math.ceil(vp.height);
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    const { data, width: W, height: H } = ctx.getImageData(0, 0, cv.width, cv.height);
+    let x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4;
+      if (data[i] < 245 || data[i + 1] < 245 || data[i + 2] < 245) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    }
+    if (x1 < 0) return null;
+    const pad = 4 * PT.mm * scale; // keep 4 mm
+    const toPt = (v) => Math.max(0, v / scale);
+    return { t: toPt(y0 - pad), l: toPt(x0 - pad), b: toPt(H - 1 - y1 - pad), r: toPt(W - 1 - x1 - pad) };
+  }
+
+  // ---------- split ----------
+  const SPLIT = [['each', 'Every page'], ['n', 'Every N pages'], ['ranges', 'Ranges'], ['files', 'By source file']];
+  for (const [k, t] of SPLIT) {
+    const b = document.createElement('button'); b.className = 'chip'; b.textContent = t; b.dataset.k = k;
+    b.addEventListener('click', () => { prefs.split = k; savePrefs(); renderSplit(); if (k === 'ranges') $('splitR').focus(); });
+    $('splitModes').appendChild(b);
+  }
+  $('splitN').addEventListener('input', renderSplit);
+  $('splitR').addEventListener('input', renderSplit);
+  function parseRanges(s, n) {
+    const groups = [];
+    for (const part of s.split(/[,;]+/).map((x) => x.trim()).filter(Boolean)) {
+      const m = part.match(/^(\d+|end)?\s*(?:-|–|to)\s*(\d+|end)?$/i) || part.match(/^(\d+|end)$/i);
+      if (!m) throw new Error(`“${part}” isn't a page range`);
+      const v = (x, d) => x == null ? d : /end/i.test(x) ? n : +x;
+      const a = v(m[1], 1), b = m.length > 2 ? v(m[2], n) : a;
+      if (a < 1 || b < 1 || a > n || b > n) throw new Error(`“${part}” is outside 1–${n}`);
+      const g = []; for (let i = a; a <= b ? i <= b : i >= b; i += a <= b ? 1 : -1) g.push(i - 1);
+      groups.push({ label: a === b ? String(a) : a + '-' + b, idx: g });
+    }
+    return groups;
+  }
+  function splitGroups() {
+    const n = pages.length;
+    const all = pages.map((_, i) => i);
+    switch (prefs.split) {
+      case 'each': return all.map((i) => ({ label: String(i + 1), idx: [i] }));
+      case 'n': { const k = Math.max(1, Math.floor(+$('splitN').value) || 1); const g = []; for (let i = 0; i < n; i += k) g.push({ label: (i + 1) + (Math.min(n, i + k) > i + 1 ? '-' + Math.min(n, i + k) : ''), idx: all.slice(i, i + k) }); return g; }
+      case 'ranges': return parseRanges($('splitR').value, n);
+      case 'files': { const g = []; for (const f of files) { const idx = all.filter((i) => pages[i].file === f.id); if (idx.length) g.push({ label: base(f.name), idx }); } return g; }
+    }
+  }
+  function renderSplit() {
+    document.querySelectorAll('#splitModes .chip').forEach((b) => b.setAttribute('aria-pressed', b.dataset.k === prefs.split));
+    $('splitNWrap').hidden = prefs.split !== 'n'; $('splitRWrap').hidden = prefs.split !== 'ranges';
+    if (!pages.length) { $('splitHint').textContent = ''; return; }
+    try {
+      const g = splitGroups();
+      $('splitHint').innerHTML = g.length ? `<b>${g.length}</b> file${g.length > 1 ? 's' : ''}: ` + esc(g.slice(0, 6).map((x) => x.label).join(', ') + (g.length > 6 ? ', …' : '')) : 'Enter page ranges, e.g. 1-3, 4, 5-end.';
+      $('splitBtn').disabled = !g.length;
+    } catch (e) { $('splitHint').textContent = e.message + '.'; $('splitBtn').disabled = true; }
+  }
+  $('splitBtn').addEventListener('click', async () => {
+    let groups; try { groups = splitGroups(); } catch (e) { toast(e.message); return; }
+    if (!groups.length) return;
+    busy('Splitting …');
+    try {
+      const zip = new JSZip(), stem = base($('outName').value || defaultName());
+      let k = 0;
+      for (const g of groups) {
+        busy(`Splitting … ${++k} of ${groups.length}`);
+        const bytes = await build(g.idx.map((i) => pages[i]));
+        zip.file(`${stem}-${g.label.replace(/[\\/:*?"<>|]+/g, '_')}.pdf`, bytes);
+      }
+      busy('Zipping …');
+      download(await zip.generateAsync({ type: 'blob' }), stem + '-split.zip');
+      showMsg(`Split into ${groups.length} PDFs.`);
+    } catch (e) { showMsg('Couldn\'t split: ' + e.message, true); }
+    busy();
+  });
+
+  // ---------- output ----------
+  $('outName').addEventListener('input', () => { $('outName').dataset.touched = '1'; });
+  ['mTitle', 'mAuthor', 'mSubject', 'mKeywords'].forEach((id) => $(id).addEventListener('input', () => { $(id).dataset.filled = '1'; }));
+  $('mPw').addEventListener('input', renderOut);
+  function renderOut() {
+    const enc = new Set(pages.map((p) => p.file)).size && files.some((f) => f.encrypted && pages.some((p) => p.file === f.id));
+    const crops = pages.filter((p) => p.crop && (p.crop.t || p.crop.r || p.crop.b || p.crop.l)).length;
+    const rots = pages.filter((p) => p.rot).length;
+    const bits = [`<b>${pages.length}</b> page${pages.length !== 1 ? 's' : ''}`];
+    if (rots) bits.push(`${rots} rotated`);
+    if (crops) bits.push(`${crops} cropped`);
+    let s = bits.join(', ') + '.';
+    if ($('mPw').value) s += ' Protected with your password (AES-256).';
+    else if (enc) s += ' Password and restrictions removed.';
+    $('outHint').innerHTML = s;
+    $('dl').disabled = !pages.length;
+  }
+
+  async function sourceDoc(f, cache) {
+    if (cache.has(f.id)) return cache.get(f.id);
+    const opts = { updateMetadata: false, throwOnInvalidObject: false };
+    if (f.encrypted) opts.password = f.password || '';
+    const d = await PDFDocument.load(f.bytes, opts);
+    cache.set(f.id, d);
+    return d;
+  }
+
+  function applyCrop(page, crop, totalRot) {
+    if (!crop || !(crop.t || crop.r || crop.b || crop.l)) return;
+    const b = page.getCropBox();
+    let x0 = b.x, y0 = b.y, x1 = b.x + b.width, y1 = b.y + b.height;
+    const { t, r, b: bo, l } = crop;
+    // margins are given as displayed (after rotation); map them back to the page's own axes
+    switch (totalRot) {
+      case 90: x0 += t; y1 -= r; x1 -= bo; y0 += l; break;
+      case 180: y0 += t; x0 += r; y1 -= bo; x1 -= l; break;
+      case 270: x1 -= t; y0 += r; x0 += bo; y1 -= l; break;
+      default: y1 -= t; x1 -= r; y0 += bo; x0 += l;
+    }
+    if (x1 - x0 < 1 || y1 - y0 < 1) return;
+    page.setMediaBox(x0, y0, x1 - x0, y1 - y0);
+    page.setCropBox(x0, y0, x1 - x0, y1 - y0);
+    for (const box of ['TrimBox', 'BleedBox', 'ArtBox']) page.node.delete(PDFName.of(box));
+  }
+
+  // build a PDF from a list of page entries
+  async function build(list) {
+    const cache = new Map();
+    const ids = [...new Set(list.map((p) => p.file))];
+    let out, outPages;
+    const f0 = fileById(ids[0]);
+    const inOrder = ids.length === 1 && list.every((p, i) => i === 0 || p.index > list[i - 1].index);
+    if (inOrder) {
+      // same file, original order: edit in place so bookmarks, forms and metadata survive
+      out = await PDFDocument.load(f0.bytes, { updateMetadata: false, throwOnInvalidObject: false, ...(f0.encrypted ? { password: f0.password || '' } : {}) });
+      const keep = new Set(list.map((p) => p.index));
+      for (let i = out.getPageCount() - 1; i >= 0; i--) if (!keep.has(i)) out.removePage(i);
+      outPages = out.getPages();
+    } else {
+      out = await PDFDocument.create({ updateMetadata: false });
+      outPages = [];
+      for (let i = 0; i < list.length;) {
+        let j = i; while (j < list.length && list[j].file === list[i].file) j++;
+        const src = await sourceDoc(fileById(list[i].file), cache);
+        const copied = await out.copyPages(src, list.slice(i, j).map((p) => p.index));
+        for (const pg of copied) { out.addPage(pg); outPages.push(pg); }
+        i = j;
+      }
+      const s0 = await sourceDoc(f0, cache);
+      for (const [get, set] of [['getTitle', 'setTitle'], ['getAuthor', 'setAuthor'], ['getSubject', 'setSubject'], ['getKeywords', 'setKeywords'], ['getCreator', 'setCreator'], ['getProducer', 'setProducer'], ['getCreationDate', 'setCreationDate']]) {
+        try { const v = s0[get](); if (v) out[set](v); } catch {}
+      }
+    }
+    list.forEach((p, i) => {
+      const pg = outPages[i];
+      const orig = pg.getRotation().angle || 0;
+      const total = ((orig + p.rot) % 360 + 360) % 360;
+      if (p.rot) pg.setRotation(degrees(total));
+      applyCrop(pg, p.crop, total);
+    });
+    // metadata
+    if ($('mStrip').checked) {
+      const info = out.getInfoDict();
+      for (const k of info.keys()) info.delete(k);
+      out.catalog.delete(PDFName.of('Metadata'));
+    }
+    const set = (fn, v) => { try { v ? out[fn](v) : null; } catch {} };
+    set('setTitle', $('mTitle').value.trim()); set('setAuthor', $('mAuthor').value.trim()); set('setSubject', $('mSubject').value.trim());
+    const kw = $('mKeywords').value.trim(); if (kw) out.getInfoDict().set(PDFName.of('Keywords'), PDFHexString.fromText(kw));
+    const info = out.getInfoDict();
+    for (const [id, k] of [['mTitle', 'Title'], ['mAuthor', 'Author'], ['mSubject', 'Subject'], ['mKeywords', 'Keywords']]) if (!$(id).value.trim()) info.delete(PDFName.of(k));
+    if (!$('mStrip').checked) out.setModificationDate(new Date());
+    const pw = $('mPw').value;
+    if (pw) out.encrypt({ userPassword: pw, ownerPassword: pw, permissions: { printing: 'highResolution', modifying: true, copying: true, annotating: true, fillingForms: true, contentAccessibility: true, documentAssembly: true } });
+    return out.save({ useObjectStreams: true });
+  }
+
+  function download(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+  }
+  async function save(list, name) {
+    if (!list.length) return;
+    busy('Building PDF …');
+    try {
+      const bytes = await build(list);
+      download(new Blob([bytes], { type: 'application/pdf' }), /\.pdf$/i.test(name) ? name : name + '.pdf');
+      showMsg(`Saved ${list.length} page${list.length > 1 ? 's' : ''}, ${fmtBytes(bytes.length)}.`);
+    } catch (e) { showMsg('Couldn\'t create the PDF: ' + (e.message || e), true); }
+    busy();
+  }
+  $('dl').addEventListener('click', () => save(pages, $('outName').value.trim() || defaultName()));
+
+  // ---------- input ----------
+  const fileInput = $('fileInput');
+  $('pick').addEventListener('click', () => fileInput.click());
+  $('pick2').addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value = ''; });
+
+  document.addEventListener('paste', (e) => {
+    const fl = [...(e.clipboardData?.files || [])];
+    if (fl.length) { e.preventDefault(); addFiles(fl); }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.altKey) return;
+    const inField = e.target.closest && e.target.closest('input, textarea, select');
+    const k = e.key.toLowerCase();
+    if (e.ctrlKey || e.metaKey) {
+      if (k === 's') { e.preventDefault(); if (pages.length) save(pages, $('outName').value.trim() || defaultName()); }
+      else if (k === 'o') { e.preventDefault(); fileInput.click(); }
+      else if (inField) return;
+      else if (k === 'a' && pages.length) { e.preventDefault(); pages.forEach((p) => sel.add(p.uid)); renderSel(); renderCrop(); }
+      else if (k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+      else if (k === 'y') { e.preventDefault(); redo(); }
+      return;
+    }
+    if (inField || !pages.length) return;
+    const chosen = pages.filter((p) => sel.has(p.uid));
+    if (k === 'delete' || k === 'backspace') { e.preventDefault(); del(chosen); }
+    else if (k === 'r') rotate(chosen, 90);
+    else if (k === 'l') rotate(chosen, -90);
+    else if (k === 'd') duplicate(chosen);
+    else if (k === 'escape' && sel.size) { sel.clear(); renderSel(); renderCrop(); renderSplit(); }
+    else if (k === 'arrowright' || k === 'arrowleft') {
+      e.preventDefault();
+      const cur = pages.findIndex((p) => p.uid === anchor);
+      const n = Math.max(0, Math.min(pages.length - 1, (cur < 0 ? -1 : cur) + (k === 'arrowright' ? 1 : -1)));
+      select(pages[n].uid, e.shiftKey ? e : null);
+      grid.querySelector(`.card[data-uid="${pages[n].uid}"]`)?.scrollIntoView({ block: 'nearest' });
+    }
+  });
+
+  const drop = $('drop');
+  let depth = 0;
+  const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes('Files');
+  window.addEventListener('dragenter', (e) => { if (!hasFiles(e)) return; e.preventDefault(); depth++; drop.hidden = false; });
+  window.addEventListener('dragover', (e) => { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+  window.addEventListener('dragleave', (e) => { if (!hasFiles(e)) return; if (--depth <= 0) { depth = 0; drop.hidden = true; } });
+  window.addEventListener('drop', (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault(); depth = 0; drop.hidden = true;
+    addFiles(e.dataTransfer.files);
+  });
+
+  renderSplit();
+  $('pick').focus({ preventScroll: true });
+  getPdfjs().catch(() => {}); // warm up
+})();
+</script>
+</body>
+</html>

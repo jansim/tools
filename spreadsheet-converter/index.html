@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spreadsheet Converter</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+:root {
+  --ink: #333333;
+  --muted: #666666;
+  --faint: #767676;
+  --line: #E8E8E8;
+  --line-strong: #D6D6D6;
+  --bg: #FFFFFF;
+  --soft: #FAFAFA;
+  --accent: #DC3522;
+  --accent-ink: #B32A1A;
+  --accent-bg: #FCEFED;
+  --radius: 6px;
+  --sans: 'Roboto', system-ui, sans-serif;
+  --mono: 'Roboto Mono', ui-monospace, monospace;
+  --chip-h: 36px;
+}
+@media (pointer: coarse) { :root { --chip-h: 44px; } }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 300 16px/1.5 var(--sans); }
+h1, h2 { font-weight: 300; margin: 0; }
+a { color: var(--accent-ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+code, kbd { font-family: var(--mono); }
+kbd { font-size: 12px; background: var(--soft); border: 1px solid var(--line-strong); border-radius: 4px; padding: 0 5px; }
+svg.i { width: 18px; height: 18px; flex: none; }
+
+.btn { height: 44px; padding: 0 16px; border: 1px solid var(--line-strong); border-radius: var(--radius);
+  background: var(--soft); color: var(--ink); font: inherit; font-weight: 400; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; }
+.btn:hover { border-color: #bbb; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { background: var(--accent-ink); border-color: var(--accent-ink); }
+.btn:disabled { opacity: .5; cursor: default; }
+select, input[type=text] { font: inherit; font-size: 14px; border: 1px solid var(--line-strong); border-radius: var(--radius);
+  background: var(--soft); padding: 0 10px; color: var(--ink); height: 40px; width: 100%; min-width: 0; }
+
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 340px; height: 100vh; }
+
+/* main */
+.stage { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-right: 1px solid var(--line); }
+.empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  text-align: center; color: var(--muted); padding: 28px; background: var(--soft); }
+.empty svg.big { width: 56px; height: 56px; color: var(--faint); stroke-width: 1.2; }
+.empty h1 { font-size: 22px; color: var(--ink); }
+.empty p { margin: 0; font-size: 14px; max-width: 420px; }
+.formats { font: 12px/1.8 var(--mono); color: var(--faint); max-width: 420px; }
+.result { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.bar { display: flex; align-items: flex-end; gap: 12px; border-bottom: 1px solid var(--line); padding: 0 16px; }
+.tabs { display: flex; gap: 2px; overflow-x: auto; flex: 1; min-width: 0; padding-top: 10px; }
+.tab { height: 40px; padding: 0 12px; border: 1px solid transparent; border-bottom: 0; border-radius: var(--radius) var(--radius) 0 0;
+  background: none; font: 400 14px var(--sans); color: var(--muted); cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; }
+.tab:hover { color: var(--ink); }
+.tab[aria-selected=true] { color: var(--ink); border-color: var(--line); background: var(--bg); margin-bottom: -1px; height: 41px; }
+.tab.off { text-decoration: line-through; opacity: .6; }
+.tab .n { font: 12px var(--mono); color: var(--faint); }
+.seg { display: flex; border: 1px solid var(--line-strong); border-radius: var(--radius); overflow: hidden; margin-bottom: 8px; flex: none; }
+.seg button { height: 32px; padding: 0 12px; border: 0; background: var(--bg); font: 400 13px var(--sans); color: var(--muted); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line-strong); }
+.seg button[aria-pressed=true] { background: var(--accent-bg); color: var(--accent-ink); }
+.seg button:disabled { opacity: .4; cursor: default; }
+.view { flex: 1; overflow: auto; min-height: 0; }
+table { border-collapse: collapse; font-size: 13px; font-family: var(--mono); }
+th, td { border: 1px solid var(--line); padding: 4px 10px; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+thead th { position: sticky; top: 0; background: var(--soft); color: var(--faint); font-weight: 400; z-index: 1; }
+tbody th { position: sticky; left: 0; background: var(--soft); color: var(--faint); font-weight: 400; text-align: right; }
+thead th:first-child { left: 0; z-index: 2; }
+td.num { text-align: right; }
+tr.hdr td { font-weight: 500; background: #fdfdfd; }
+td.nil { color: #bbb; }
+pre.out { margin: 0; padding: 14px 16px; font: 13px/1.55 var(--mono); white-space: pre; tab-size: 4; }
+.more { font-size: 13px; color: var(--faint); padding: 10px 16px; }
+
+/* panel */
+.panel { overflow: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+.sec { display: flex; flex-direction: column; gap: 10px; }
+.sec + .sec { border-top: 1px solid var(--line); padding-top: 20px; }
+.label { font-size: 13px; font-weight: 400; color: var(--faint); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.file { display: flex; gap: 12px; align-items: center; }
+.file .meta { flex: 1; min-width: 0; }
+.file .name { font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file .sub { font-size: 13px; color: var(--faint); font-family: var(--mono); }
+.sheets { display: flex; flex-direction: column; gap: 2px; max-height: 220px; overflow: auto; }
+.sheets label { display: flex; align-items: center; gap: 10px; font-size: 14px; min-height: 36px; padding: 0 4px; cursor: pointer; border-radius: 4px; }
+.sheets label:hover { background: var(--soft); }
+.sheets label .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheets label .src { color: var(--faint); font-size: 12px; }
+.sheets .n { font: 12px var(--mono); color: var(--faint); }
+input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; flex: none; }
+.chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.chip { height: var(--chip-h); padding: 0 8px; border: 1px solid var(--line-strong); border-radius: var(--radius);
+  background: var(--bg); color: var(--ink); font: 400 14px var(--sans); cursor: pointer; }
+.chip:hover { border-color: #bbb; }
+.chip[aria-pressed=true] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-ink); }
+.opts { display: flex; flex-direction: column; gap: 10px; }
+.check { display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; min-height: 28px; }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--faint); font-weight: 400; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.outname { font: 13px var(--mono); color: var(--ink); word-break: break-all; }
+.outsub { font-size: 13px; color: var(--faint); }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.msg { font-size: 13px; padding: 8px 10px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--soft); color: var(--muted); }
+.msg.err { border-color: #f1c4be; background: var(--accent-bg); color: var(--accent-ink); }
+.keys { font-size: 12px; color: var(--faint); line-height: 1.9; }
+
+.drop { position: fixed; inset: 0; z-index: 10; pointer-events: none; background: rgba(252, 239, 237, .92);
+  border: 2px dashed var(--accent); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px;
+  color: var(--accent-ink); font-size: 22px; }
+.drop svg { width: 48px; height: 48px; }
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ink); color: #fff;
+  padding: 10px 16px; border-radius: var(--radius); font-size: 14px; font-weight: 400; z-index: 11; box-shadow: 0 4px 16px rgba(0,0,0,.15); }
+
+@media (max-width: 760px) {
+  .app { grid-template-columns: 1fr; height: auto; }
+  .stage { height: 60vh; min-height: 340px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .panel { overflow: visible; padding: 16px; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-table" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M3 14h18M9 4v16"/></symbol>
+    <symbol id="i-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <main class="stage">
+    <div class="empty" id="empty">
+      <svg class="big"><use href="#i-table"/></svg>
+      <h1>Convert spreadsheets</h1>
+      <p>Drop files anywhere, paste cells or text with <kbd>Ctrl</kbd>+<kbd>V</kbd>, or choose files. Several files are combined. Nothing is uploaded.</p>
+      <button class="btn primary" id="pick"><svg class="i"><use href="#i-open"/></svg>Choose files</button>
+      <div class="formats">xlsx · xls · xlsb · ods · numbers · csv · tsv · json · html · markdown</div>
+    </div>
+    <div class="result" id="result" hidden>
+      <div class="bar">
+        <div class="tabs" id="tabs" role="tablist" aria-label="Sheets"></div>
+        <div class="seg" role="group" aria-label="View">
+          <button id="vTable" aria-pressed="true">Table</button>
+          <button id="vOut" aria-pressed="false">Output</button>
+        </div>
+      </div>
+      <div class="view" id="view"></div>
+    </div>
+  </main>
+
+  <aside class="panel">
+    <div class="file">
+      <div class="meta">
+        <div class="name" id="fname">No files yet</div>
+        <div class="sub" id="fsub">Spreadsheets, CSV, JSON …</div>
+      </div>
+      <button class="btn" id="pick2" title="Open files (Ctrl+O)"><svg class="i"><use href="#i-open"/></svg>Open</button>
+    </div>
+
+    <section class="sec" id="sheetSec" hidden>
+      <div class="label"><span>Sheets to include</span><span id="sheetCount"></span></div>
+      <div class="sheets" id="sheets"></div>
+    </section>
+
+    <section class="sec">
+      <div class="label">Convert to</div>
+      <div class="chips" id="fmts"></div>
+    </section>
+
+    <section class="sec">
+      <div class="label">Options</div>
+      <div class="opts">
+        <label class="check"><input type="checkbox" id="oHeader">First row is a header</label>
+        <label class="check" title="Applies to CSV, TSV, text and pasted input"><input type="checkbox" id="oTypes">Detect numbers in text input</label>
+        <label class="check" title="Use the number and date formatting shown in the spreadsheet instead of raw values"><input type="checkbox" id="oFormatted">Keep displayed formatting</label>
+        <div class="two" id="csvOpts">
+          <label class="field">Delimiter
+            <select id="oDelim"><option value=",">Comma ,</option><option value=";">Semicolon ;</option><option value="&#9;">Tab</option><option value="|">Pipe |</option></select>
+          </label>
+          <label class="field">Line ends
+            <select id="oEol"><option value="lf">LF (Unix)</option><option value="crlf">CRLF (Windows)</option></select>
+          </label>
+          <label class="check" style="grid-column:1/-1"><input type="checkbox" id="oBom">Add BOM (Excel reads UTF-8 correctly)</label>
+        </div>
+        <div class="two" id="jsonOpts">
+          <label class="field">Shape
+            <select id="oJsonShape"><option value="objects">Array of objects</option><option value="arrays">Array of arrays</option></select>
+          </label>
+          <label class="field">Indent
+            <select id="oJsonIndent"><option value="2">2 spaces</option><option value="tab">Tab</option><option value="0">Minified</option></select>
+          </label>
+        </div>
+        <div id="sqlOpts" class="opts">
+          <label class="check"><input type="checkbox" id="oSqlCreate">Include CREATE TABLE</label>
+        </div>
+        <label class="check" id="zipOpt"><input type="checkbox" id="oZip">One file per sheet (ZIP)</label>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="label">Output</div>
+      <div>
+        <div class="outname" id="outName">–</div>
+        <div class="outsub" id="outSub"></div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="dl" disabled><svg class="i"><use href="#i-down"/></svg>Download</button>
+        <button class="btn" id="copy" disabled><svg class="i"><use href="#i-copy"/></svg>Copy</button>
+      </div>
+      <div class="msg" id="msg" role="status" hidden></div>
+      <div class="keys"><kbd>Ctrl</kbd>+<kbd>S</kbd> download · <kbd>Ctrl</kbd>+<kbd>O</kbd> open</div>
+    </section>
+  </aside>
+</div>
+
+<input type="file" id="fileInput" multiple hidden
+  accept=".xlsx,.xlsm,.xlsb,.xls,.ods,.fods,.numbers,.csv,.tsv,.tab,.txt,.json,.html,.htm,.md,.markdown,.xml,.dbf,.prn,.dif,.sylk,.slk">
+<div class="drop" id="drop" hidden><svg><use href="#i-open"/></svg>Drop to convert</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const KEY = 'spreadsheet-converter:opts';
+  const PREVIEW_ROWS = 200, PREVIEW_CHARS = 200000;
+
+  const FORMATS = {
+    xlsx: { label: 'XLSX', ext: 'xlsx', book: 'xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+    ods:  { label: 'ODS', ext: 'ods', book: 'ods', mime: 'application/vnd.oasis.opendocument.spreadsheet' },
+    xls:  { label: 'XLS', ext: 'xls', book: 'biff8', mime: 'application/vnd.ms-excel' },
+    csv:  { label: 'CSV', ext: 'csv', text: true, mime: 'text/csv' },
+    tsv:  { label: 'TSV', ext: 'tsv', text: true, mime: 'text/tab-separated-values' },
+    json: { label: 'JSON', ext: 'json', text: true, combined: true, mime: 'application/json' },
+    md:   { label: 'Markdown', ext: 'md', text: true, combined: true, mime: 'text/markdown' },
+    html: { label: 'HTML', ext: 'html', text: true, combined: true, mime: 'text/html' },
+    sql:  { label: 'SQL', ext: 'sql', text: true, combined: true, mime: 'application/sql' },
+    tex:  { label: 'LaTeX', ext: 'tex', text: true, combined: true, mime: 'application/x-tex' },
+  };
+
+  const opts = { fmt: 'xlsx', header: true, types: true, formatted: false, delim: ',', eol: 'lf', bom: false,
+    jsonShape: 'objects', jsonIndent: '2', sqlCreate: true, zip: false };
+  try { Object.assign(opts, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch {}
+  if (!FORMATS[opts.fmt]) opts.fmt = 'xlsx';
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(opts)); } catch {} };
+
+  let inputs = [];   // [{ name, kind: 'text'|'book', text?, wb? }]
+  let sheets = [];   // [{ name, src, rows, on }]
+  let active = 0;
+  let view = 'table';
+
+  // ---------- reading ----------
+  const ext = (n) => (n.match(/\.([^.]+)$/) || [, ''])[1].toLowerCase();
+  const base = (n) => n.replace(/\.[^.]+$/, '') || 'data';
+  const TEXT_EXT = new Set(['csv', 'tsv', 'tab', 'txt', 'json', 'md', 'markdown', 'prn']);
+
+  function decode(buf) {
+    const u8 = new Uint8Array(buf);
+    if (u8[0] === 0xFF && u8[1] === 0xFE) return new TextDecoder('utf-16le').decode(u8);
+    if (u8[0] === 0xFE && u8[1] === 0xFF) return new TextDecoder('utf-16be').decode(u8);
+    try { return new TextDecoder('utf-8', { fatal: true }).decode(u8).replace(/^\uFEFF/, ''); }
+    catch { return new TextDecoder('windows-1252').decode(u8); }
+  }
+
+  async function readFile(f) {
+    const buf = await f.arrayBuffer();
+    const e = ext(f.name);
+    if (TEXT_EXT.has(e) || (!e && /^text\//.test(f.type))) return { name: f.name, kind: 'text', text: decode(buf) };
+    const wb = XLSX.read(buf, { type: 'array', cellDates: true, cellNF: true, dense: false });
+    return { name: f.name, kind: 'book', wb };
+  }
+
+  // typing for text input: numbers only, keep leading zeros and ids as text
+  function typer(delim) {
+    const dot = /^[-+]?(?:\d+|\d{1,3}(?:,\d{3})+)?(?:\.\d+)?(?:[eE][-+]?\d+)?$/;
+    const comma = /^[-+]?(?:\d+|\d{1,3}(?:\.\d{3})+)(?:,\d+)?$/;
+    return (v) => {
+      if (typeof v !== 'string') return v;
+      const s = v.trim();
+      if (!s || !/\d/.test(s)) return v;
+      if (s.replace(/[^\d]/g, '').length > 15) return v; // would lose precision
+      if (delim !== ',' && /,/.test(s) && comma.test(s) && !/^\d{1,3}(,\d{3})+$/.test(s)) {
+        return Number(s.replace(/\./g, '').replace(',', '.'));
+      }
+      if (dot.test(s)) { const n = Number(s.replace(/,/g, '')); return Number.isFinite(n) ? n : v; }
+      return v;
+    };
+  }
+
+  // type whole columns: a column holding ids like 007 or 01067 stays text throughout
+  function typeColumns(rows, delim) {
+    if (!opts.types || !rows.length) return rows;
+    const ty = typer(delim), w = Math.max(...rows.map((r) => r.length));
+    const keep = new Set();
+    for (let c = 0; c < w; c++) if (rows.some((r) => typeof r[c] === 'string' && /^[-+]?0\d+$/.test(r[c].trim()))) keep.add(c);
+    return rows.map((r) => r.map((v, c) => keep.has(c) ? v : ty(v)));
+  }
+
+  function parseMarkdown(text) {
+    const tables = []; let cur = null;
+    for (const line of text.split(/\r?\n/)) {
+      const t = line.trim();
+      if (/^\|.*\|$/.test(t) || (cur && t.includes('|') && t)) {
+        const cells = t.replace(/^\|/, '').replace(/\|$/, '').split(/(?<!\\)\|/).map((c) => c.trim().replace(/\\\|/g, '|'));
+        if (cells.every((c) => /^:?-{2,}:?$/.test(c))) continue;
+        (cur ||= []).push(cells);
+      } else if (cur) { tables.push(cur); cur = null; }
+    }
+    if (cur) tables.push(cur);
+    return tables;
+  }
+
+  function parseJson(text) {
+    const data = JSON.parse(text);
+    const toRows = (arr) => {
+      if (!Array.isArray(arr)) arr = [arr];
+      if (arr.every(Array.isArray)) return arr.map((r) => r.map(flat));
+      const keys = [];
+      for (const o of arr) if (o && typeof o === 'object') for (const k of Object.keys(o)) if (!keys.includes(k)) keys.push(k);
+      if (!keys.length) return arr.map((v) => [flat(v)]);
+      return [keys, ...arr.map((o) => keys.map((k) => flat(o?.[k])))];
+    };
+    if (Array.isArray(data)) return [{ rows: toRows(data) }];
+    if (data && typeof data === 'object') {
+      const vals = Object.entries(data);
+      if (vals.length && vals.every(([, v]) => Array.isArray(v))) return vals.map(([k, v]) => ({ name: k, rows: toRows(v) }));
+      return [{ rows: toRows(data) }];
+    }
+    return [{ rows: [[data]] }];
+  }
+  const flat = (v) => v == null ? null : typeof v === 'object' ? JSON.stringify(v) : v;
+
+  function textToSheets(inp) {
+    const t = inp.text;
+    const e = ext(inp.name);
+    const trimmed = t.trim();
+    if (e === 'json' || ((!e || e === 'txt') && /^[\[{]/.test(trimmed))) {
+      try { return parseJson(trimmed); } catch (err) { if (e === 'json') throw new Error(`“${inp.name}” isn't valid JSON: ${err.message}`); }
+    }
+    if (e === 'md' || e === 'markdown' || (/^\|.*\|\s*\r?\n\s*\|[\s:|-]+\|/m.test(trimmed))) {
+      const tables = parseMarkdown(t);
+      if (tables.length) {
+        return tables.map((rows, i) => ({ name: tables.length > 1 ? 'Table ' + (i + 1) : undefined, rows: typeColumns(rows, ',') }));
+      }
+    }
+    const res = Papa.parse(t, { header: false, skipEmptyLines: 'greedy',
+      delimiter: e === 'tsv' || e === 'tab' ? '\t' : '', delimitersToGuess: ['\t', ',', ';', '|'] });
+    return [{ rows: typeColumns(res.data.map((r) => r.map((v) => v === '' ? null : v)), res.meta.delimiter) }];
+  }
+
+  function bookToSheets(wb) {
+    return wb.SheetNames.map((n) => {
+      const ws = wb.Sheets[n];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: !opts.formatted, defval: null, blankrows: false, rawNumbers: !opts.formatted, dateNF: 'yyyy-mm-dd' });
+      if (!opts.formatted) for (const r of rows) for (let i = 0; i < r.length; i++) if (r[i] instanceof Date) r[i] = fixDate(r[i]);
+      return { name: n, rows };
+    });
+  }
+  // SheetJS 0.18 can return dates off by a few seconds; round to the nearest minute when close
+  function fixDate(d) {
+    const ms = d.getTime(), r = Math.round(ms / 60000) * 60000;
+    return Math.abs(ms - r) < 61000 && d.getSeconds() !== 0 && Math.abs(ms - r) > 0 ? new Date(r) : d;
+  }
+
+  async function handleFiles(list) {
+    const files = [...list];
+    if (!files.length) return;
+    const ok = [], bad = [];
+    for (const f of files) {
+      try { ok.push(await readFile(f)); } catch (e) { bad.push(`Couldn't read “${f.name}”: ${e.message || 'not a spreadsheet'}.`); }
+    }
+    if (!ok.length) { showMsg(bad.join(' '), true); return; }
+    inputs = ok;
+    build(bad.join(' '));
+  }
+
+  function build(note) {
+    const errors = note ? [note] : [];
+    const used = new Set();
+    const prev = new Map(sheets.map((s) => [s.key, s.on]));
+    sheets = [];
+    for (const inp of inputs) {
+      let list;
+      try { list = inp.kind === 'book' ? bookToSheets(inp.wb) : textToSheets(inp); }
+      catch (e) { errors.push(e.message); continue; }
+      for (const s of list) {
+        const rows = trimRows(s.rows);
+        if (!rows.length) continue;
+        // one sheet per file: name it after the file; several: after the sheet (prefixed by the file when combining files)
+        const own = s.name && (list.length > 1 || (inp.kind === 'book' && inputs.length === 1)) ? s.name : null;
+        const name = uniqueName(!own ? base(inp.name) : inputs.length > 1 ? base(inp.name) + ' ' + own : own, used);
+        const key = inp.name + '\u0000' + (s.name || '');
+        sheets.push({ key, name, src: inp.name, rows, on: prev.has(key) ? prev.get(key) : true });
+      }
+    }
+    if (!sheets.length) { showMsg(errors.join(' ') || 'No data found in that input.', true); return; }
+    if (active >= sheets.length) active = 0;
+    $('empty').hidden = true; $('result').hidden = false;
+    renderAll();
+    showMsg(errors.join(' '), true);
+  }
+
+  function trimRows(rows) {
+    rows = rows.filter((r) => r && r.some((v) => v != null && v !== ''));
+    let w = 0;
+    for (const r of rows) { let i = r.length; while (i > 0 && (r[i - 1] == null || r[i - 1] === '')) i--; w = Math.max(w, i); }
+    return rows.map((r) => { const o = r.slice(0, w); while (o.length < w) o.push(null); return o; });
+  }
+
+  function uniqueName(n, used) {
+    let s = String(n).replace(/[\\/?*\[\]:]/g, '_').replace(/^'+|'+$/g, '').slice(0, 31) || 'Sheet';
+    let out = s, i = 2;
+    while (used.has(out.toLowerCase())) { const suf = ' (' + i++ + ')'; out = s.slice(0, 31 - suf.length) + suf; }
+    used.add(out.toLowerCase());
+    return out;
+  }
+
+  // ---------- writing ----------
+  const pad = (n) => String(n).padStart(2, '0');
+  function dateStr(d) {
+    const day = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    if (d.getHours() || d.getMinutes() || d.getSeconds()) {
+      if (d.getFullYear() <= 1900 && d.getMonth() === 0 && d.getDate() <= 1) return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; // time-only cell
+      return `${day} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+    return day;
+  }
+  const str = (v) => v == null ? '' : v instanceof Date ? dateStr(v) : typeof v === 'boolean' ? (v ? 'TRUE' : 'FALSE') : String(v);
+  const jsonVal = (v) => v instanceof Date ? dateStr(v) : v;
+
+  function headers(rows) {
+    const seen = new Map();
+    return rows[0].map((h, i) => {
+      let k = str(h).trim() || 'column_' + (i + 1);
+      if (seen.has(k)) { const n = seen.get(k) + 1; seen.set(k, n); k = k + '_' + n; } else seen.set(k, 1);
+      return k;
+    });
+  }
+
+  function toDelimited(rows, d) {
+    const eol = opts.eol === 'crlf' ? '\r\n' : '\n';
+    const q = (v) => {
+      const s = str(v);
+      return s.includes(d) || /["\r\n]/.test(s) || /^\s|\s$/.test(s) && d !== '\t' ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    return rows.map((r) => r.map(q).join(d)).join(eol) + eol;
+  }
+
+  function toJsonData(rows) {
+    if (opts.jsonShape === 'arrays' || !opts.header) return rows.map((r) => r.map(jsonVal));
+    const h = headers(rows);
+    return rows.slice(1).map((r) => Object.fromEntries(h.map((k, i) => [k, jsonVal(r[i] ?? null)])));
+  }
+
+  const mdEsc = (v) => str(v).replace(/\|/g, '\\|').replace(/\r?\n/g, '<br>');
+  function toMarkdown(rows) {
+    const body = opts.header ? rows.slice(1) : rows;
+    const head = opts.header ? rows[0].map(mdEsc) : rows[0].map((_, i) => XLSX.utils.encode_col(i));
+    const num = head.map((_, c) => body.length && body.every((r) => r[c] == null || typeof r[c] === 'number'));
+    const lines = ['| ' + head.join(' | ') + ' |', '| ' + num.map((n) => n ? '---:' : '---').join(' | ') + ' |'];
+    for (const r of body) lines.push('| ' + r.map(mdEsc).join(' | ') + ' |');
+    return lines.join('\n') + '\n';
+  }
+
+  const hEsc = (v) => str(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  function toHtmlTable(rows) {
+    const body = opts.header ? rows.slice(1) : rows;
+    let s = '<table>\n';
+    if (opts.header) s += '  <thead>\n    <tr>' + rows[0].map((v) => '<th>' + hEsc(v) + '</th>').join('') + '</tr>\n  </thead>\n';
+    s += '  <tbody>\n' + body.map((r) => '    <tr>' + r.map((v) => '<td>' + hEsc(v) + '</td>').join('') + '</tr>').join('\n') + '\n  </tbody>\n</table>\n';
+    return s;
+  }
+
+  const ident = (s) => '"' + String(s).replace(/"/g, '""') + '"';
+  function toSql(rows, name) {
+    const h = opts.header ? headers(rows) : rows[0].map((_, i) => 'column_' + (i + 1));
+    const body = opts.header ? rows.slice(1) : rows;
+    const t = ident(name);
+    const type = (c) => {
+      const vals = body.map((r) => r[c]).filter((v) => v != null && v !== '');
+      if (!vals.length) return 'TEXT';
+      if (vals.every((v) => typeof v === 'number' && Number.isInteger(v))) return 'INTEGER';
+      if (vals.every((v) => typeof v === 'number')) return 'REAL';
+      if (vals.every((v) => typeof v === 'boolean')) return 'BOOLEAN';
+      if (vals.every((v) => v instanceof Date)) return 'TIMESTAMP';
+      return 'TEXT';
+    };
+    const lit = (v) => v == null || v === '' ? 'NULL' : typeof v === 'number' ? (Number.isFinite(v) ? String(v) : 'NULL')
+      : typeof v === 'boolean' ? (v ? 'TRUE' : 'FALSE') : "'" + str(v).replace(/'/g, "''") + "'";
+    let s = '';
+    if (opts.sqlCreate) s += `CREATE TABLE ${t} (\n` + h.map((k, i) => `  ${ident(k)} ${type(i)}`).join(',\n') + '\n);\n';
+    const cols = '(' + h.map(ident).join(', ') + ')';
+    for (let i = 0; i < body.length; i += 500) {
+      s += `INSERT INTO ${t} ${cols} VALUES\n` + body.slice(i, i + 500).map((r) => '  (' + h.map((_, c) => lit(r[c])).join(', ') + ')').join(',\n') + ';\n';
+    }
+    return s;
+  }
+
+  const texEsc = (v) => str(v).replace(/\\/g, '\\textbackslash{}').replace(/([&%$#_{}])/g, '\\$1').replace(/~/g, '\\textasciitilde{}').replace(/\^/g, '\\textasciicircum{}');
+  function toLatex(rows) {
+    const body = opts.header ? rows.slice(1) : rows;
+    const align = rows[0].map((_, c) => body.length && body.every((r) => r[c] == null || typeof r[c] === 'number') ? 'r' : 'l').join('');
+    const line = (r) => '  ' + r.map(texEsc).join(' & ') + ' \\\\';
+    let s = `\\begin{tabular}{${align}}\n  \\hline\n`;
+    if (opts.header) s += line(rows[0]) + '\n  \\hline\n';
+    s += body.map(line).join('\n') + '\n  \\hline\n\\end{tabular}\n';
+    return s;
+  }
+
+  const included = () => sheets.filter((s) => s.on);
+
+  function sheetText(fmt, s) {
+    switch (fmt) {
+      case 'csv': return toDelimited(s.rows, opts.delim);
+      case 'tsv': return toDelimited(s.rows, '\t');
+      case 'json': return stringify(toJsonData(s.rows));
+      case 'md': return toMarkdown(s.rows);
+      case 'html': return toHtmlTable(s.rows);
+      case 'sql': return toSql(s.rows, s.name);
+      case 'tex': return toLatex(s.rows);
+    }
+  }
+  const stringify = (d) => JSON.stringify(d, null, opts.jsonIndent === 'tab' ? '\t' : +opts.jsonIndent || undefined) + '\n';
+
+  // full text output for combined formats (all included sheets in one file)
+  function combinedText(fmt, list) {
+    if (list.length === 1) return sheetText(fmt, list[0]);
+    switch (fmt) {
+      case 'json': return stringify(Object.fromEntries(list.map((s) => [s.name, toJsonData(s.rows)])));
+      case 'md': return list.map((s) => '## ' + s.name + '\n\n' + toMarkdown(s.rows)).join('\n');
+      case 'html': return list.map((s) => '<h2>' + hEsc(s.name) + '</h2>\n' + toHtmlTable(s.rows)).join('\n');
+      case 'sql': return list.map((s) => toSql(s.rows, s.name)).join('\n');
+      case 'tex': return list.map((s) => '% ' + s.name + '\n' + toLatex(s.rows)).join('\n');
+    }
+  }
+
+  function workbook(list) {
+    const wb = XLSX.utils.book_new();
+    for (const s of list) {
+      const ws = XLSX.utils.aoa_to_sheet(s.rows, { cellDates: true, dateNF: 'yyyy-mm-dd' });
+      const cols = s.rows[0].length;
+      ws['!cols'] = Array.from({ length: cols }, (_, c) => {
+        let w = 6;
+        for (const r of s.rows.slice(0, 200)) { const v = r[c]; if (v != null) w = Math.max(w, str(v).length + 2); }
+        return { wch: Math.min(w, 50) };
+      });
+      if (opts.header && s.rows.length > 1) ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: s.rows.length - 1, c: cols - 1 } }) };
+      XLSX.utils.book_append_sheet(wb, ws, s.name);
+    }
+    return wb;
+  }
+
+  const zipMode = () => { const f = FORMATS[opts.fmt]; return included().length > 1 && f.text && (!f.combined || opts.zip); };
+
+  function outBase() {
+    if (inputs.length === 1) return base(inputs[0].name);
+    return 'combined-' + new Date().toISOString().slice(0, 10);
+  }
+  function outName() {
+    const f = FORMATS[opts.fmt];
+    return outBase() + '.' + (zipMode() ? 'zip' : f.ext);
+  }
+  const fileSafe = (s) => s.replace(/[\\/:*?"<>|]+/g, '_');
+
+  async function makeBlob() {
+    const f = FORMATS[opts.fmt], list = included();
+    if (f.book) {
+      const buf = XLSX.write(workbook(list), { bookType: f.book, type: 'array', compression: true });
+      return new Blob([buf], { type: f.mime });
+    }
+    const bom = opts.bom && (opts.fmt === 'csv' || opts.fmt === 'tsv') ? '\uFEFF' : '';
+    if (zipMode()) {
+      const zip = new JSZip(), used = new Set();
+      for (const s of list) {
+        let n = fileSafe(s.name), i = 2;
+        while (used.has(n.toLowerCase())) n = fileSafe(s.name) + '-' + i++;
+        used.add(n.toLowerCase());
+        zip.file(n + '.' + f.ext, bom + sheetText(opts.fmt, s));
+      }
+      return zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+    }
+    const text = f.combined ? combinedText(opts.fmt, list) : sheetText(opts.fmt, list[0]);
+    return new Blob([bom + text], { type: f.mime + ';charset=utf-8' });
+  }
+
+  async function download() {
+    if (!included().length) return;
+    try {
+      const blob = await makeBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = outName();
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (e) { showMsg('Couldn\'t create the file: ' + e.message, true); }
+  }
+
+  function copyText() {
+    const f = FORMATS[opts.fmt], list = included();
+    if (!list.length) return null;
+    if (!f.text) return toDelimited(list.includes(sheets[active]) ? sheets[active].rows : list[0].rows, '\t');
+    if (f.combined) return combinedText(opts.fmt, list);
+    return sheetText(opts.fmt, list.includes(sheets[active]) ? sheets[active] : list[0]);
+  }
+  async function copy() {
+    const t = copyText();
+    if (t == null) return;
+    try {
+      await navigator.clipboard.writeText(t);
+      const f = FORMATS[opts.fmt];
+      toast(f.text ? (f.combined || included().length === 1 ? 'Copied ' + f.label : 'Copied ' + f.label + ' of “' + (included().includes(sheets[active]) ? sheets[active] : included()[0]).name + '”')
+        : 'Copied sheet as tab-separated text, ready to paste into a spreadsheet');
+    } catch { showMsg('The browser blocked clipboard access. Use Download instead.', true); }
+  }
+
+  // ---------- UI ----------
+  function showMsg(text, err) {
+    const m = $('msg');
+    if (!text) { m.hidden = true; return; }
+    m.textContent = text; m.className = 'msg' + (err ? ' err' : ''); m.hidden = false;
+  }
+  let tt;
+  function toast(t) { const el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(tt); tt = setTimeout(() => el.hidden = true, 2200); }
+
+  const fmtN = (n) => n.toLocaleString('en');
+
+  function renderFormats() {
+    const box = $('fmts'); box.innerHTML = '';
+    for (const [k, f] of Object.entries(FORMATS)) {
+      const b = document.createElement('button');
+      b.className = 'chip'; b.textContent = f.label; b.setAttribute('aria-pressed', k === opts.fmt);
+      b.addEventListener('click', () => { opts.fmt = k; save(); renderAll(); });
+      box.appendChild(b);
+    }
+    const f = FORMATS[opts.fmt];
+    $('csvOpts').hidden = !(opts.fmt === 'csv' || opts.fmt === 'tsv');
+    $('oDelim').closest('.field').hidden = opts.fmt !== 'csv';
+    $('jsonOpts').hidden = opts.fmt !== 'json';
+    $('sqlOpts').hidden = opts.fmt !== 'sql';
+    $('zipOpt').hidden = !(f.combined && included().length > 1);
+    $('vOut').disabled = !f.text;
+    if (!f.text && view === 'out') view = 'table';
+  }
+
+  function renderSheets() {
+    const box = $('sheets'); box.innerHTML = '';
+    $('sheetSec').hidden = sheets.length < 2;
+    $('sheetCount').textContent = included().length + ' of ' + sheets.length;
+    sheets.forEach((s, i) => {
+      const l = document.createElement('label');
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = s.on;
+      cb.addEventListener('change', () => { s.on = cb.checked; renderAll(); });
+      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = s.name;
+      if (inputs.length > 1 && s.name !== base(s.src)) { const src = document.createElement('span'); src.className = 'src'; src.textContent = ' · ' + s.src; nm.appendChild(src); }
+      const n = document.createElement('span'); n.className = 'n'; n.textContent = fmtN(s.rows.length);
+      l.append(cb, nm, n);
+      l.addEventListener('dblclick', (e) => { e.preventDefault(); active = i; renderAll(); });
+      box.appendChild(l);
+    });
+  }
+
+  function renderTabs() {
+    const tabs = $('tabs'); tabs.innerHTML = '';
+    sheets.forEach((s, i) => {
+      const b = document.createElement('button');
+      b.className = 'tab' + (s.on ? '' : ' off'); b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', i === active);
+      b.textContent = s.name;
+      const n = document.createElement('span'); n.className = 'n'; n.textContent = fmtN(s.rows.length); b.appendChild(n);
+      b.addEventListener('click', () => { active = i; renderAll(); });
+      tabs.appendChild(b);
+    });
+  }
+
+  function renderView() {
+    $('vTable').setAttribute('aria-pressed', view === 'table');
+    $('vOut').setAttribute('aria-pressed', view === 'out');
+    const s = sheets[active];
+    const v = $('view');
+    if (view === 'out') {
+      let t = sheetText(opts.fmt, s);
+      const pre = document.createElement('pre'); pre.className = 'out';
+      const more = t.length > PREVIEW_CHARS;
+      pre.textContent = more ? t.slice(0, PREVIEW_CHARS) : t;
+      v.replaceChildren(pre);
+      if (more) { const m = document.createElement('div'); m.className = 'more'; m.textContent = 'Preview truncated, the download contains everything.'; v.appendChild(m); }
+      return;
+    }
+    const rows = s.rows.slice(0, PREVIEW_ROWS);
+    const cols = s.rows[0].length;
+    const t = document.createElement('table');
+    const hr = t.createTHead().insertRow();
+    hr.appendChild(document.createElement('th'));
+    for (let c = 0; c < cols; c++) { const th = document.createElement('th'); th.textContent = XLSX.utils.encode_col(c); hr.appendChild(th); }
+    const tb = t.createTBody();
+    rows.forEach((r, i) => {
+      const tr = tb.insertRow();
+      if (opts.header && i === 0) tr.className = 'hdr';
+      const th = document.createElement('th'); th.textContent = i + 1; tr.appendChild(th);
+      for (let c = 0; c < cols; c++) {
+        const td = tr.insertCell(), val = r[c];
+        td.textContent = str(val); if (td.textContent.length > 30) td.title = td.textContent;
+        if (typeof val === 'number' || val instanceof Date) td.className = 'num';
+      }
+    });
+    v.replaceChildren(t);
+    if (s.rows.length > rows.length) {
+      const m = document.createElement('div'); m.className = 'more';
+      m.textContent = `+ ${fmtN(s.rows.length - rows.length)} more rows`;
+      v.appendChild(m);
+    }
+  }
+
+  function renderOutput() {
+    const list = included();
+    $('dl').disabled = !list.length;
+    $('copy').disabled = !list.length;
+    const f = FORMATS[opts.fmt];
+    $('copy').title = f.text ? 'Copy ' + f.label + ' to the clipboard' : 'Copy the current sheet as tab-separated text';
+    if (!list.length) { $('outName').textContent = '–'; $('outSub').textContent = 'Select at least one sheet.'; return; }
+    $('outName').textContent = outName();
+    const rows = list.reduce((a, s) => a + s.rows.length, 0);
+    const what = zipMode() ? `${list.length} ${f.label} files` : `${list.length} sheet${list.length > 1 ? 's' : ''}`;
+    $('outSub').textContent = `${what} · ${fmtN(rows)} rows`;
+  }
+
+  function renderAll() {
+    if (!sheets.length) { renderFormats(); return; }
+    const totalSheets = sheets.length;
+    $('fname').textContent = inputs.length === 1 ? inputs[0].name : inputs.length + ' files';
+    $('fname').title = inputs.map((i) => i.name).join('\n');
+    $('fsub').textContent = totalSheets + ' sheet' + (totalSheets > 1 ? 's' : '');
+    renderFormats(); renderSheets(); renderTabs(); renderView(); renderOutput();
+  }
+
+  // options wiring
+  const bind = (id, key, prop = 'checked', rebuild = false) => {
+    const el = $(id);
+    el[prop] = opts[key];
+    el.addEventListener('change', () => { opts[key] = el[prop]; save(); if (rebuild && inputs.length) build(); else renderAll(); });
+  };
+  bind('oHeader', 'header');
+  bind('oTypes', 'types', 'checked', true);
+  bind('oFormatted', 'formatted', 'checked', true);
+  bind('oDelim', 'delim', 'value');
+  bind('oEol', 'eol', 'value');
+  bind('oBom', 'bom');
+  bind('oJsonShape', 'jsonShape', 'value');
+  bind('oJsonIndent', 'jsonIndent', 'value');
+  bind('oSqlCreate', 'sqlCreate');
+  bind('oZip', 'zip');
+
+  $('vTable').addEventListener('click', () => { view = 'table'; renderView(); });
+  $('vOut').addEventListener('click', () => { view = 'out'; renderView(); });
+
+  const fileInput = $('fileInput');
+  $('pick').addEventListener('click', () => fileInput.click());
+  $('pick2').addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => { handleFiles(fileInput.files); fileInput.value = ''; });
+  $('dl').addEventListener('click', download);
+  $('copy').addEventListener('click', copy);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.altKey || !(e.ctrlKey || e.metaKey)) return;
+    const k = e.key.toLowerCase();
+    if (k === 's') { e.preventDefault(); download(); }
+    else if (k === 'o') { e.preventDefault(); fileInput.click(); }
+  });
+
+  document.addEventListener('paste', (e) => {
+    if (e.target.closest && e.target.closest('input, textarea, select')) return;
+    const files = [...(e.clipboardData?.files || [])];
+    if (files.length) { e.preventDefault(); handleFiles(files); return; }
+    const html = e.clipboardData?.getData('text/html');
+    const text = e.clipboardData?.getData('text/plain');
+    if (html && /<table/i.test(html)) {
+      e.preventDefault();
+      try {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const wb = XLSX.utils.book_new();
+        doc.querySelectorAll('table').forEach((tbl, i) => XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_sheet(tbl, { raw: false }), 'Table ' + (i + 1)));
+        inputs = [{ name: 'pasted', kind: 'text', text: text || '' }];
+        sheets = [];
+        const used = new Set();
+        wb.SheetNames.forEach((n) => {
+          // HTML tables come in as text; reapply number detection
+          const rows = trimRows(typeColumns(XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: false, defval: null }).map((r) => r.map((v) => v === '' ? null : v)), ','));
+          if (rows.length) sheets.push({ key: 'paste' + n, name: uniqueName(wb.SheetNames.length > 1 ? n : 'pasted', used), src: 'pasted', rows, on: true });
+        });
+        if (sheets.length) { active = 0; $('empty').hidden = true; $('result').hidden = false; renderAll(); showMsg(''); return; }
+      } catch {}
+    }
+    if (!text || !text.trim()) return;
+    e.preventDefault();
+    inputs = [{ name: 'pasted', kind: 'text', text }];
+    active = 0;
+    build();
+  });
+
+  const drop = $('drop');
+  let depth = 0;
+  const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes('Files');
+  window.addEventListener('dragenter', (e) => { if (!hasFiles(e)) return; e.preventDefault(); depth++; drop.hidden = false; });
+  window.addEventListener('dragover', (e) => { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+  window.addEventListener('dragleave', (e) => { if (!hasFiles(e)) return; if (--depth <= 0) { depth = 0; drop.hidden = true; } });
+  window.addEventListener('drop', (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault(); depth = 0; drop.hidden = true;
+    active = 0;
+    handleFiles(e.dataTransfer.files);
+  });
+
+  renderFormats();
+  $('pick').focus({ preventScroll: true });
+})();
+</script>
+</body>
+</html>
