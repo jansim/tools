@@ -2,6 +2,7 @@
   {
     "slug": "color-bg-remover",
     "name": "Color Background Remover",
+    "emoji": "🪄",
     "description": "Remove solid-colour backgrounds from images, several colours at once.",
     "tags": ["images", "png", "transparency", "background"],
     "keywords": ["transparent", "remove", "colour", "color"],
@@ -20,6 +21,7 @@
   {
     "slug": "fancy-screenshot",
     "name": "Perspective & Tilt-Shift Studio",
+    "emoji": "📐",
     "description": "Screenshots to 3D-perspective images with tilt-shift blur, camera angle and FOV, high-res PNG export.",
     "tags": ["images", "screenshot", "3d", "png"],
     "keywords": ["perspective", "tilt", "shift", "blur", "mockup", "export"],
@@ -29,6 +31,7 @@
   {
     "slug": "regenbogen",
     "name": "Regenbogen",
+    "emoji": "🌈",
     "description": "Browse and search 2,400+ colour palettes for data visualisation, filter by type and colourblind safety.",
     "tags": ["colors", "palettes", "dataviz"],
     "keywords": ["colour", "palette", "qualitative", "sequential", "divergent", "colorblind", "paletteer", "r", "ggplot", "hex"],
@@ -40,6 +43,7 @@
   {
     "slug": "image-resize-crop",
     "name": "Image Resize & Crop",
+    "emoji": "✂️",
     "description": "Crop, resize, rotate and flip an image, with aspect-ratio presets and PNG, JPEG or WebP export.",
     "tags": ["images", "png", "resize", "crop", "convert"],
     "keywords": ["scale", "shrink", "downscale", "aspect ratio", "rotate", "flip", "jpg", "jpeg", "webp", "compress"],
@@ -49,6 +53,7 @@
   {
     "slug": "screenshot-annotator",
     "name": "Screenshot Annotator",
+    "emoji": "📸",
     "description": "Paste a screenshot and add arrows, boxes, text, numbered steps and highlights, blur sensitive parts, crop, then copy or download.",
     "tags": ["images", "screenshot", "png", "annotate"],
     "keywords": ["markup", "arrow", "highlight", "redact", "pixelate", "blur", "callout", "draw", "crop"],
@@ -58,6 +63,7 @@
   {
     "slug": "pdf-toolkit",
     "name": "PDF Toolkit",
+    "emoji": "📝",
     "description": "Merge, split, reorder, rotate, delete and crop PDF pages, remove passwords, and view or edit all document metadata.",
     "tags": ["pdf", "merge", "split", "crop", "convert"],
     "keywords": ["combine", "join", "extract pages", "reorder", "rotate", "unlock", "decrypt", "password", "metadata", "info", "trim", "margins"],
@@ -67,6 +73,7 @@
   {
     "slug": "qr-code",
     "name": "QR Code Generator",
+    "emoji": "🔳",
     "description": "QR codes for links, text, Wi-Fi, contacts and more, with dot and corner styles, colours, gradients and a centre logo. PNG and SVG export.",
     "tags": ["qr", "images", "png", "svg"],
     "keywords": ["qr code", "barcode", "wifi", "vcard", "contact", "logo", "gradient", "generator"],
@@ -75,11 +82,22 @@
   },
   {
     "slug": "text-counter",
+    "emoji": "💬",
     "name": "Word & Character Counter",
     "description": "Count words, characters, sentences, lines and reading time live. Drop a PDF or Word file to count its extracted text.",
     "tags": ["text", "pdf", "docx", "count"],
     "keywords": ["word count", "character count", "letters", "lines", "sentences", "paragraphs", "reading time", "extract text", "odt", "limit", "case"],
     "screenshot": "text-counter/screenshot.png",
     "added": "2026-11-15"
+  },
+  {
+    "slug": "colorblind-simulator",
+    "name": "Color Blindness Simulator",
+    "emoji": "👓",
+    "description": "See images and palettes as people with protanopia, deuteranopia, tritanopia or achromatopsia do, side by side or as a before/after comparison.",
+    "tags": ["images", "colors", "accessibility", "dataviz"],
+    "keywords": ["colorblind", "colourblind", "colour blindness", "cvd", "color vision deficiency", "protanopia", "deuteranopia", "tritanopia", "achromatopsia", "protanomaly", "deuteranomaly", "daltonism", "a11y", "palette", "hex"],
+    "screenshot": "colorblind-simulator/screenshot.png",
+    "added": "2026-11-10"
   }
 ]
