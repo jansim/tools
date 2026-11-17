@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Word &amp; Character Counter</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #333333;
+  --muted: #666666;
+  --faint: #767676;
+  --line: #E8E8E8;
+  --line-strong: #D6D6D6;
+  --bg: #FFFFFF;
+  --soft: #FAFAFA;
+  --accent: #DC3522;
+  --accent-ink: #B32A1A;
+  --accent-bg: #FCEFED;
+  --radius: 6px;
+  --sans: 'Roboto', system-ui, sans-serif;
+  --mono: 'Roboto Mono', ui-monospace, monospace;
+  --chip-h: 32px;
+}
+@media (pointer: coarse) { :root { --chip-h: 44px; } }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 300 16px/1.5 var(--sans); }
+h1, h2 { font-weight: 300; margin: 0; }
+a { color: var(--accent-ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+code, kbd { font-family: var(--mono); }
+kbd { font-size: 12px; background: var(--soft); border: 1px solid var(--line-strong); border-radius: 4px; padding: 0 5px; }
+svg.i { width: 18px; height: 18px; flex: none; }
+
+.btn { height: 44px; padding: 0 16px; border: 1px solid var(--line-strong); border-radius: var(--radius);
+  background: var(--soft); color: var(--ink); font: inherit; font-weight: 400; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; }
+.btn:hover { border-color: #bbb; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { background: var(--accent-ink); border-color: var(--accent-ink); }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn[aria-pressed=true] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-ink); }
+.btn.sm { height: 36px; padding: 0 12px; font-size: 14px; }
+input[type=number] { font: 14px var(--mono); border: 1px solid var(--line-strong); border-radius: var(--radius);
+  background: var(--soft); padding: 0 10px; color: var(--ink); height: 36px; width: 100px; }
+
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 340px; height: 100vh; }
+
+.stage { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-right: 1px solid var(--line); position: relative; }
+.toolbar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.toolbar .src { flex: 1; min-width: 0; font-size: 13px; color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toolbar .src b { color: var(--ink); font-weight: 400; }
+.edit { flex: 1; position: relative; min-height: 0; }
+textarea { position: absolute; inset: 0; width: 100%; height: 100%; resize: none; border: 0; padding: 20px 24px; margin: 0;
+  font: 300 17px/1.65 var(--sans); color: var(--ink); background: var(--bg); outline: none; }
+textarea.mono { font: 400 14px/1.6 var(--mono); }
+.placeholder { position: absolute; inset: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; text-align: center; color: var(--muted); padding: 28px; }
+.placeholder svg.big { width: 56px; height: 56px; color: var(--faint); stroke-width: 1.2; }
+.placeholder h1 { font-size: 22px; color: var(--ink); }
+.placeholder p { margin: 0; font-size: 14px; max-width: 420px; }
+.placeholder .btn { pointer-events: auto; }
+.formats { font: 12px/1.8 var(--mono); color: var(--faint); }
+.busy { position: absolute; inset: 0; background: rgba(255,255,255,.85); display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--muted); z-index: 2; }
+
+.panel { overflow: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+.sec { display: flex; flex-direction: column; gap: 10px; }
+.sec + .sec { border-top: 1px solid var(--line); padding-top: 20px; }
+.label { font-size: 13px; font-weight: 400; color: var(--faint); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.label .sel { color: var(--accent-ink); }
+.big2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+.stat .v { font: 300 28px/1.1 var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+.stat .k { font-size: 13px; color: var(--faint); }
+.stat .s { font: 12px var(--mono); color: var(--accent-ink); min-height: 18px; }
+dl.stats { margin: 0; font: 14px/1.9 var(--sans); display: grid; grid-template-columns: 1fr auto; column-gap: 12px; }
+dl.stats dt { color: var(--muted); }
+dl.stats dd { margin: 0; text-align: right; font-family: var(--mono); font-size: 13px; color: var(--ink); white-space: nowrap; }
+dl.stats dd small { color: var(--accent-ink); font-size: 12px; }
+.limit { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { height: var(--chip-h); padding: 0 10px; border: 1px solid var(--line-strong); border-radius: var(--radius);
+  background: var(--bg); color: var(--ink); font: 400 13px var(--sans); cursor: pointer; }
+.chip:hover { border-color: #bbb; }
+.chip[aria-pressed=true] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-ink); }
+.meter { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--ink); width: 0; transition: width .15s; }
+.meter.over i { background: var(--accent); }
+.limtxt { font: 13px var(--mono); color: var(--muted); }
+.limtxt.over { color: var(--accent-ink); }
+select { font: inherit; font-size: 14px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--soft); padding: 0 8px; height: 36px; color: var(--ink); }
+.words { list-style: none; margin: 0; padding: 0; font-size: 14px; }
+.words li { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 8px; align-items: center; padding: 2px 0; position: relative; }
+.words .w { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; position: relative; z-index: 1; padding-left: 6px; }
+.words .bar { position: absolute; left: 0; top: 3px; bottom: 3px; background: var(--accent-bg); border-radius: 3px; }
+.words .c { font: 12px var(--mono); color: var(--faint); text-align: right; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); cursor: pointer; }
+input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; }
+.files { font-size: 13px; color: var(--muted); display: grid; grid-template-columns: minmax(0,1fr) auto; column-gap: 12px; }
+.files span:nth-child(odd) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.files span:nth-child(even) { font-family: var(--mono); font-size: 12px; text-align: right; }
+.msg { font-size: 13px; padding: 8px 10px; border-radius: var(--radius); border: 1px solid #f1c4be; background: var(--accent-bg); color: var(--accent-ink); }
+.keys { font-size: 12px; color: var(--faint); line-height: 1.9; }
+
+.drop { position: fixed; inset: 0; z-index: 10; pointer-events: none; background: rgba(252, 239, 237, .92);
+  border: 2px dashed var(--accent); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px;
+  color: var(--accent-ink); font-size: 22px; }
+.drop svg { width: 48px; height: 48px; }
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ink); color: #fff;
+  padding: 10px 16px; border-radius: var(--radius); font-size: 14px; font-weight: 400; z-index: 11; box-shadow: 0 4px 16px rgba(0,0,0,.15); }
+
+@media (max-width: 760px) {
+  .app { grid-template-columns: 1fr; height: auto; }
+  .stage { height: 60vh; min-height: 320px; border-right: 0; border-bottom: 1px solid var(--line); }
+  textarea { padding: 16px; }
+  .panel { overflow: visible; padding: 16px; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 10h16M4 14h10M4 18h7"/></symbol>
+    <symbol id="i-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <main class="stage">
+    <div class="toolbar">
+      <div class="src" id="src">Type or paste text</div>
+      <select id="transform" aria-label="Transform text">
+        <option value="">Transform …</option>
+        <option value="upper">UPPERCASE</option>
+        <option value="lower">lowercase</option>
+        <option value="title">Title Case</option>
+        <option value="sentence">Sentence case</option>
+        <option value="spaces">Collapse extra spaces</option>
+        <option value="joinlines">Join wrapped lines</option>
+        <option value="oneline">Remove all line breaks</option>
+        <option value="noempty">Remove empty lines</option>
+        <option value="dedupe">Remove duplicate lines</option>
+        <option value="sort">Sort lines A–Z</option>
+      </select>
+      <button class="btn sm" id="mono" aria-pressed="false" title="Toggle monospace font">Mono</button>
+      <button class="btn sm" id="copy" title="Copy all text"><svg class="i"><use href="#i-copy"/></svg>Copy</button>
+      <button class="btn sm" id="dl" title="Download as .txt (Ctrl+S)"><svg class="i"><use href="#i-down"/></svg>.txt</button>
+      <button class="btn sm" id="clear" title="Clear"><svg class="i"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="edit">
+      <textarea id="ta" spellcheck="false" aria-label="Text"></textarea>
+      <div class="placeholder" id="ph">
+        <svg class="big"><use href="#i-text"/></svg>
+        <h1>Count words &amp; characters</h1>
+        <p>Start typing, paste text, or drop a document anywhere. Text is extracted in the browser, nothing is uploaded.</p>
+        <button class="btn primary" id="pick"><svg class="i"><use href="#i-open"/></svg>Choose files</button>
+        <div class="formats">pdf · docx · odt · txt · md · html · csv · json · srt</div>
+      </div>
+      <div class="busy" id="busy" hidden>Extracting text …</div>
+    </div>
+  </main>
+
+  <aside class="panel">
+    <section class="sec">
+      <div class="label"><span>Counts</span><span class="sel" id="selInfo"></span></div>
+      <div class="big2">
+        <div class="stat"><div class="v" id="sWords">0</div><div class="k">Words</div><div class="s" id="xWords"></div></div>
+        <div class="stat"><div class="v" id="sChars">0</div><div class="k">Characters</div><div class="s" id="xChars"></div></div>
+      </div>
+      <dl class="stats" id="stats"></dl>
+    </section>
+
+    <section class="sec">
+      <div class="label">Limit</div>
+      <div class="limit">
+        <input type="number" id="limit" min="1" step="1" placeholder="none" aria-label="Limit">
+        <select id="limitUnit" aria-label="Limit unit"><option value="chars">characters</option><option value="words">words</option></select>
+      </div>
+      <div class="chips" id="presets"></div>
+      <div id="limitOut" hidden>
+        <div class="meter" id="meter"><i></i></div>
+        <div class="limtxt" id="limtxt"></div>
+      </div>
+    </section>
+
+    <section class="sec" id="filesSec" hidden>
+      <div class="label">Files</div>
+      <div class="files" id="files"></div>
+    </section>
+
+    <section class="sec">
+      <div class="label"><span>Most used words</span><label class="check"><input type="checkbox" id="stop" checked>Skip common words</label></div>
+      <ol class="words" id="words"></ol>
+    </section>
+    <div class="msg" id="msg" role="status" hidden></div>
+    <div class="keys">Drop or paste PDF/Word files to extract their text.<br><kbd>Ctrl</kbd>+<kbd>O</kbd> open · <kbd>Ctrl</kbd>+<kbd>S</kbd> save as .txt</div>
+  </aside>
+</div>
+
+<input type="file" id="fileInput" multiple hidden accept=".pdf,.docx,.odt,.txt,.text,.md,.markdown,.html,.htm,.csv,.tsv,.json,.xml,.srt,.vtt,.rtf,.tex,.log,text/*">
+<div class="drop" id="drop" hidden><svg><use href="#i-open"/></svg>Drop to count</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const ta = $('ta');
+  const KEY = 'text-counter:prefs';
+  const PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/';
+  const MAMMOTH = 'https://cdn.jsdelivr.net/npm/mammoth@1.13.0/mammoth.browser.min.js';
+  const JSZIP = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+
+  const prefs = { mono: false, limit: '', unit: 'chars', stop: true };
+  try { Object.assign(prefs, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch {}
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(prefs)); } catch {} };
+
+  let sourceName = '';   // base name of the last loaded file, for the download name
+  let files = [];        // [{ name, words, pages }]
+
+  // ---------- counting ----------
+  const seg = (g) => { try { return new Intl.Segmenter(undefined, { granularity: g }); } catch { return null; } };
+  const gSeg = seg('grapheme'), wSeg = seg('word'), sSeg = seg('sentence');
+  const fmt = (n) => n.toLocaleString('en');
+
+  function countGraphemes(t) {
+    if (!gSeg || /^[\x00-\x7F]*$/.test(t)) return t.length;
+    let n = 0; for (const _ of gSeg.segment(t)) n++; return n;
+  }
+  function wordList(t) {
+    const out = [];
+    if (wSeg) { for (const s of wSeg.segment(t)) if (s.isWordLike) out.push(s.segment); }
+    else out.push(...(t.match(/[\p{L}\p{N}][\p{L}\p{N}'’_-]*/gu) || []));
+    return out;
+  }
+  // Segmenter splits "don't" fine but splits "e-mail" and "3.5"; count hyphenated words and decimals as one
+  function words(t) {
+    const tokens = t.match(/\S+/g) || [];
+    let n = 0;
+    for (const tok of tokens) if (/[\p{L}\p{N}]/u.test(tok)) n += /[぀-ヿ㐀-鿿가-힯฀-๿]/.test(tok) ? wordList(tok).length : 1;
+    return n;
+  }
+  function sentences(t) {
+    if (!t.trim()) return 0;
+    if (sSeg) { let n = 0; for (const s of sSeg.segment(t)) if (/[\p{L}\p{N}]/u.test(s.segment)) n++; return n; }
+    return (t.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || []).filter((s) => /\w/.test(s)).length;
+  }
+  function stats(t) {
+    const lines = t ? t.split(/\r\n|\r|\n/) : [];
+    const w = words(t);
+    const list = wordList(t);
+    const lens = list.map((x) => [...x].length);
+    return {
+      words: w,
+      chars: countGraphemes(t),
+      noSpace: countGraphemes(t.replace(/\s+/g, '')),
+      letters: (t.match(/\p{L}/gu) || []).length,
+      lines: lines.length,
+      nonEmpty: lines.filter((l) => l.trim()).length,
+      sentences: sentences(t),
+      paragraphs: t.split(/\n\s*\n/).filter((p) => p.trim()).length,
+      unique: new Set(list.map((x) => x.toLowerCase())).size,
+      avg: lens.length ? lens.reduce((a, b) => a + b, 0) / lens.length : 0,
+      longest: list.reduce((a, b) => [...b].length > [...a].length ? b : a, ''),
+      bytes: new TextEncoder().encode(t).length,
+      list,
+    };
+  }
+  const dur = (words, wpm) => {
+    if (!words) return '0 s';
+    const s = Math.round(words / wpm * 60);
+    if (s < 60) return s + ' s';
+    const m = Math.floor(s / 60), r = s % 60;
+    if (m < 60) return m + ' min' + (r ? ' ' + r + ' s' : '');
+    return Math.floor(m / 60) + ' h ' + (m % 60) + ' min';
+  };
+  const bytes = (b) => b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : (b / 1048576).toFixed(2) + ' MB';
+
+  const STOP = new Set(('a an and are as at be been but by can could did do does for from had has have he her his i if in into is it its just me my no not of on or our she so than that the their them then there these they this to too up us was we were what when which who will with would you your ' +
+    'aber als am an auch auf aus bei bin bis da das dass dem den der des die doch du ein eine einem einen einer es für hat hatte ich ihr im in ist ja kann man mit nach nicht noch nur oder sich sie sind so um und uns von vor war was wenn wie wir wird zu zum zur über ' +
+    'de la le les et en un une du des est que qui pour pas sur au il elle ne se ce dans par plus el los las y del por con para es una su al lo como más').split(' '));
+
+  // ---------- rendering ----------
+  let pending = 0;
+  function schedule() {
+    clearTimeout(pending);
+    pending = setTimeout(render, ta.value.length > 200000 ? 250 : ta.value.length > 30000 ? 60 : 0);
+  }
+
+  function render() {
+    const t = ta.value;
+    $('ph').hidden = !!t;
+    const st = stats(t);
+    const s0 = ta.selectionStart, s1 = ta.selectionEnd;
+    const sel = s1 > s0 ? t.slice(s0, s1) : '';
+    const ss = sel ? { words: words(sel), chars: countGraphemes(sel) } : null;
+    $('sWords').textContent = fmt(st.words);
+    $('sChars').textContent = fmt(st.chars);
+    $('xWords').textContent = ss ? fmt(ss.words) + ' selected' : '';
+    $('xChars').textContent = ss ? fmt(ss.chars) + ' selected' : '';
+    $('selInfo').textContent = ss ? 'Selection' : '';
+    const rows = [
+      ['Without spaces', fmt(st.noSpace)],
+      ['Letters', fmt(st.letters)],
+      ['Sentences', fmt(st.sentences)],
+      ['Paragraphs', fmt(st.paragraphs)],
+      ['Lines', fmt(st.lines) + (st.lines !== st.nonEmpty ? ` <small>(${fmt(st.nonEmpty)} non-empty)</small>` : '')],
+      ['Unique words', fmt(st.unique)],
+      ['Avg. word length', st.avg ? st.avg.toFixed(1) + ' chars' : '–'],
+      ['Avg. sentence length', st.sentences ? (st.words / st.sentences).toFixed(1) + ' words' : '–'],
+      ['Longest word', st.longest ? esc(st.longest.length > 22 ? st.longest.slice(0, 21) + '…' : st.longest) : '–'],
+      ['Reading time', dur(st.words, 238)],
+      ['Speaking time', dur(st.words, 140)],
+      ['Size (UTF-8)', bytes(st.bytes)],
+    ];
+    $('stats').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+    renderLimit(st);
+    renderWords(st.list);
+    $('src').innerHTML = sourceName ? 'From <b>' + esc(files.length > 1 ? files.length + ' files' : files[0]?.name || sourceName) + '</b>' + (files.length === 1 && files[0].pages ? ' · ' + files[0].pages + ' pages' : '') : (t ? 'Text' : 'Type or paste text');
+  }
+  const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+  function renderLimit(st) {
+    const lim = +prefs.limit;
+    $('limitOut').hidden = !lim;
+    document.querySelectorAll('#presets .chip').forEach((c) => c.setAttribute('aria-pressed', +c.dataset.n === lim && c.dataset.u === prefs.unit));
+    if (!lim) return;
+    const v = prefs.unit === 'words' ? st.words : st.chars;
+    const over = v > lim;
+    $('meter').className = 'meter' + (over ? ' over' : '');
+    $('meter').firstElementChild.style.width = Math.min(100, v / lim * 100) + '%';
+    $('limtxt').className = 'limtxt' + (over ? ' over' : '');
+    $('limtxt').textContent = `${fmt(v)} / ${fmt(lim)} ${prefs.unit === 'words' ? 'words' : 'characters'} · ` + (over ? `${fmt(v - lim)} over` : `${fmt(lim - v)} left`);
+  }
+
+  function renderWords(list) {
+    const m = new Map();
+    for (const w of list) {
+      const k = w.toLowerCase();
+      if (prefs.stop && (STOP.has(k) || [...k].length < 2 || /^\d+$/.test(k))) continue;
+      m.set(k, (m.get(k) || 0) + 1);
+    }
+    const top = [...m].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 12);
+    const max = top[0]?.[1] || 1;
+    $('words').innerHTML = top.length
+      ? top.map(([w, c]) => `<li><span class="w"><span class="bar" style="width:${(c / max * 100).toFixed(1)}%"></span><span style="position:relative">${esc(w)}</span></span><span class="c">${fmt(c)}</span></li>`).join('')
+      : '<li style="color:var(--faint);font-size:13px">No words yet</li>';
+  }
+
+  // ---------- limit ----------
+  const PRESETS = [[280, 'chars', 'Post 280'], [160, 'chars', 'Meta 160'], [500, 'chars', '500 chars'], [250, 'words', '250 words'], [1000, 'words', '1,000 words']];
+  for (const [n, u, label] of PRESETS) {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = label; b.dataset.n = n; b.dataset.u = u;
+    b.addEventListener('click', () => {
+      const on = +prefs.limit === n && prefs.unit === u;
+      prefs.limit = on ? '' : n; prefs.unit = u; $('limit').value = prefs.limit; $('limitUnit').value = u; save(); render();
+    });
+    $('presets').appendChild(b);
+  }
+  $('limit').value = prefs.limit; $('limitUnit').value = prefs.unit;
+  $('limit').addEventListener('input', () => { prefs.limit = $('limit').value; save(); render(); });
+  $('limitUnit').addEventListener('change', () => { prefs.unit = $('limitUnit').value; save(); render(); });
+  $('stop').checked = prefs.stop;
+  $('stop').addEventListener('change', () => { prefs.stop = $('stop').checked; save(); render(); });
+
+  // ---------- editing ----------
+  ta.addEventListener('input', schedule);
+  document.addEventListener('selectionchange', () => { if (document.activeElement === ta) schedule(); });
+  ta.addEventListener('select', schedule);
+
+  // replace the whole text but keep it on the undo stack
+  function setText(t) {
+    ta.focus();
+    ta.select();
+    if (!document.execCommand || !document.execCommand('insertText', false, t)) ta.value = t;
+    if (ta.value !== t) ta.value = t;
+    ta.setSelectionRange(0, 0); ta.scrollTop = 0;
+    render();
+  }
+
+  const TRANSFORMS = {
+    upper: (t) => t.toUpperCase(),
+    lower: (t) => t.toLowerCase(),
+    title: (t) => t.toLowerCase().replace(/(^|[\s\-("'“‘\/])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()),
+    sentence: (t) => t.toLowerCase().replace(/(^\s*|[.!?]\s+|\n\s*)(\p{L})/gu, (m, a, b) => a + b.toUpperCase()),
+    spaces: (t) => t.replace(/[^\S\n]+/g, ' ').replace(/ *\n */g, '\n').trim(),
+    joinlines: (t) => t.replace(/\r\n?/g, '\n').split(/\n[^\S\n]*\n\s*/).map((p) => p.replace(/-\n(?=\p{Ll})/gu, '').replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean).join('\n\n'),
+    oneline: (t) => t.replace(/\s*[\r\n]+\s*/g, ' ').trim(),
+    noempty: (t) => t.split(/\r?\n/).filter((l) => l.trim()).join('\n'),
+    dedupe: (t) => [...new Set(t.split(/\r?\n/))].join('\n'),
+    sort: (t) => t.split(/\r?\n/).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })).join('\n'),
+  };
+  $('transform').addEventListener('change', (e) => {
+    const f = TRANSFORMS[e.target.value]; e.target.value = '';
+    if (!f || !ta.value) return;
+    const s0 = ta.selectionStart, s1 = ta.selectionEnd;
+    if (s1 > s0) { // transform only the selection
+      ta.focus();
+      const out = f(ta.value.slice(s0, s1));
+      if (!document.execCommand('insertText', false, out)) ta.setRangeText(out, s0, s1, 'select');
+      ta.setSelectionRange(s0, s0 + out.length);
+      render();
+    } else setText(f(ta.value));
+  });
+
+  const applyMono = () => { ta.classList.toggle('mono', prefs.mono); $('mono').setAttribute('aria-pressed', prefs.mono); };
+  applyMono();
+  $('mono').addEventListener('click', () => { prefs.mono = !prefs.mono; save(); applyMono(); });
+
+  let tt;
+  const toast = (t) => { const el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(tt); tt = setTimeout(() => el.hidden = true, 1800); };
+  $('copy').addEventListener('click', async () => {
+    if (!ta.value) return;
+    try { await navigator.clipboard.writeText(ta.value); toast('Copied ' + fmt(words(ta.value)) + ' words'); }
+    catch { ta.select(); document.execCommand('copy'); toast('Copied'); }
+  });
+  function download() {
+    if (!ta.value) return;
+    const url = URL.createObjectURL(new Blob([ta.value], { type: 'text/plain;charset=utf-8' }));
+    const a = document.createElement('a'); a.href = url; a.download = (sourceName || 'text') + '.txt';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  $('dl').addEventListener('click', download);
+  $('clear').addEventListener('click', () => { sourceName = ''; files = []; $('filesSec').hidden = true; setText(''); showMsg(''); });
+
+  // ---------- extraction ----------
+  const ext = (n) => (n.match(/\.([^.]+)$/) || [, ''])[1].toLowerCase();
+  const base = (n) => n.replace(/\.[^.]+$/, '');
+  const loaded = {};
+  const loadScript = (src) => loaded[src] ||= new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = src; s.onload = res;
+    s.onerror = () => { delete loaded[src]; rej(new Error('Couldn\'t load the reader library. Are you offline?')); };
+    document.head.appendChild(s);
+  });
+  let pdfjs;
+  async function getPdfjs() {
+    if (pdfjs) return pdfjs;
+    try { pdfjs = await import(PDFJS + 'pdf.min.mjs'); } catch { throw new Error('Couldn\'t load the PDF reader. Are you offline?'); }
+    pdfjs.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.mjs';
+    return pdfjs;
+  }
+
+  function decode(buf) {
+    const u8 = new Uint8Array(buf);
+    if (u8[0] === 0xFF && u8[1] === 0xFE) return new TextDecoder('utf-16le').decode(u8);
+    if (u8[0] === 0xFE && u8[1] === 0xFF) return new TextDecoder('utf-16be').decode(u8);
+    try { return new TextDecoder('utf-8', { fatal: true }).decode(u8).replace(/^﻿/, ''); }
+    catch { return new TextDecoder('windows-1252').decode(u8); }
+  }
+  function htmlText(html) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    doc.querySelectorAll('script, style, noscript, template').forEach((n) => n.remove());
+    doc.querySelectorAll('br').forEach((n) => n.replaceWith('\n'));
+    doc.querySelectorAll('p, div, li, h1, h2, h3, h4, h5, h6, tr, blockquote, pre, section, article').forEach((n) => n.append('\n\n'));
+    return (doc.body?.textContent || '').replace(/[^\S\n]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  async function pdfText(buf, name) {
+    const lib = await getPdfjs();
+    let doc, cancelled = false;
+    const task = lib.getDocument({ data: buf, isEvalSupported: false });
+    task.onPassword = (update, reason) => {
+      const p = prompt(reason === lib.PasswordResponses.INCORRECT_PASSWORD ? 'Wrong password. Try again:' : `“${name}” is password protected. Password:`);
+      if (p == null) { cancelled = true; task.destroy(); } else update(p);
+    };
+    try { doc = await task.promise; }
+    catch (e) {
+      if (cancelled || e?.name === 'PasswordException') throw new Error('is password protected');
+      throw new Error('isn\'t a readable PDF');
+    }
+    const pages = [];
+    for (let i = 1; i <= doc.numPages; i++) {
+      const tc = await (await doc.getPage(i)).getTextContent();
+      let s = '';
+      for (const it of tc.items) { s += it.str; if (it.hasEOL) s += '\n'; }
+      pages.push(s.replace(/[^\S\n]+\n/g, '\n').trim());
+      $('busy').textContent = `Extracting text … page ${i} of ${doc.numPages}`;
+    }
+    doc.destroy();
+    return { text: pages.filter(Boolean).join('\n\n'), pages: pages.length, empty: !pages.some(Boolean) };
+  }
+
+  async function odtText(buf) {
+    await loadScript(JSZIP);
+    const zip = await JSZip.loadAsync(buf);
+    const xml = await zip.file('content.xml')?.async('string');
+    if (!xml) throw new Error('isn\'t a valid ODT file');
+    const doc = new DOMParser().parseFromString(xml, 'application/xml');
+    const NS = 'urn:oasis:names:tc:opendocument:xmlns:text:1.0';
+    const out = [];
+    const walk = (n) => {
+      for (const c of n.childNodes) {
+        if (c.nodeType === 3) out.push(c.nodeValue);
+        else if (c.namespaceURI === NS && c.localName === 's') out.push(' '.repeat(+c.getAttributeNS(NS, 'c') || 1));
+        else if (c.namespaceURI === NS && c.localName === 'tab') out.push('\t');
+        else if (c.namespaceURI === NS && c.localName === 'line-break') out.push('\n');
+        else if (c.namespaceURI === NS && /^(note-citation)$/.test(c.localName)) continue;
+        else { walk(c); if (c.namespaceURI === NS && (c.localName === 'p' || c.localName === 'h')) out.push('\n\n'); }
+      }
+    };
+    walk(doc.documentElement.getElementsByTagNameNS('urn:oasis:names:tc:opendocument:xmlns:office:1.0', 'body')[0] || doc.documentElement);
+    return out.join('').replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  function rtfText(s) {
+    return s.replace(/\\par[d]?\b/g, '\n').replace(/\{\\\*[^{}]*\}/g, '').replace(/\\'([0-9a-f]{2})/gi, (m, h) => String.fromCharCode(parseInt(h, 16)))
+      .replace(/\\u(-?\d+)\??/g, (m, n) => String.fromCharCode(n < 0 ? +n + 65536 : +n)).replace(/\\[a-z]+-?\d* ?/gi, '').replace(/[{}]/g, '').trim();
+  }
+  const srtText = (s) => s.replace(/\r/g, '').replace(/^WEBVTT.*\n/, '').split(/\n\n+/).map((b) => b.split('\n').filter((l) => !/^\d+$/.test(l.trim()) && !/-->/.test(l)).join(' ')).filter(Boolean).join('\n').replace(/<[^>]+>/g, '');
+
+  async function extract(f) {
+    const e = ext(f.name);
+    const buf = await f.arrayBuffer();
+    if (e === 'pdf' || f.type === 'application/pdf') return pdfText(buf, f.name);
+    if (e === 'docx' || f.type.includes('wordprocessingml')) {
+      await loadScript(MAMMOTH);
+      try { return { text: (await mammoth.extractRawText({ arrayBuffer: buf })).value.replace(/\n{3,}/g, '\n\n').trim() }; }
+      catch { throw new Error('isn\'t a readable Word document'); }
+    }
+    if (e === 'doc') throw new Error('is an old .doc file. Save it as .docx and try again');
+    if (e === 'odt') return { text: await odtText(buf) };
+    const t = decode(buf);
+    if (e === 'html' || e === 'htm' || f.type === 'text/html') return { text: htmlText(t) };
+    if (e === 'rtf') return { text: rtfText(t) };
+    if (e === 'srt' || e === 'vtt') return { text: srtText(t) };
+    if (/[\x00-\x08\x0E-\x1F]/.test(t.slice(0, 2000))) throw new Error('doesn\'t look like a text file');
+    return { text: t };
+  }
+
+  async function handleFiles(list) {
+    const fl = [...list];
+    if (!fl.length) return;
+    $('busy').hidden = false; $('busy').textContent = 'Extracting text …';
+    const parts = [], errs = [];
+    files = [];
+    for (const f of fl) {
+      try {
+        const r = await extract(f);
+        if (r.empty) errs.push(`“${f.name}” has no text layer (probably a scan).`);
+        if (r.text) { parts.push(r.text); files.push({ name: f.name, words: words(r.text), pages: r.pages }); }
+      } catch (e) { errs.push(`“${f.name}” ${e.message}.`); }
+    }
+    $('busy').hidden = true;
+    showMsg(errs.join(' '));
+    if (!parts.length) { files = []; return; }
+    sourceName = fl.length === 1 ? base(fl[0].name) : 'combined';
+    $('filesSec').hidden = files.length < 2;
+    $('files').innerHTML = files.map((f) => `<span title="${esc(f.name)}">${esc(f.name)}</span><span>${fmt(f.words)} words</span>`).join('');
+    setText(parts.join('\n\n'));
+  }
+  function showMsg(t) { $('msg').hidden = !t; $('msg').textContent = t; }
+
+  const fileInput = $('fileInput');
+  $('pick').addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => { handleFiles(fileInput.files); fileInput.value = ''; });
+
+  // files pasted from the OS: extract; plain text paste is handled by the textarea itself
+  document.addEventListener('paste', (e) => {
+    const fl = [...(e.clipboardData?.files || [])].filter((f) => !f.type.startsWith('image/'));
+    if (fl.length) { e.preventDefault(); handleFiles(fl); return; }
+    if (e.target !== ta) {
+      const t = e.clipboardData?.getData('text/plain');
+      if (t) { e.preventDefault(); ta.focus(); document.execCommand('insertText', false, t) || (ta.value += t); render(); }
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.altKey || !(e.ctrlKey || e.metaKey)) return;
+    const k = e.key.toLowerCase();
+    if (k === 's') { e.preventDefault(); download(); }
+    else if (k === 'o') { e.preventDefault(); fileInput.click(); }
+  });
+
+  const drop = $('drop');
+  let depth = 0;
+  const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes('Files');
+  window.addEventListener('dragenter', (e) => { if (!hasFiles(e)) return; e.preventDefault(); depth++; drop.hidden = false; });
+  window.addEventListener('dragover', (e) => { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+  window.addEventListener('dragleave', (e) => { if (!hasFiles(e)) return; if (--depth <= 0) { depth = 0; drop.hidden = true; } });
+  window.addEventListener('drop', (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault(); depth = 0; drop.hidden = true;
+    handleFiles(e.dataTransfer.files);
+  });
+
+  render();
+  ta.focus({ preventScroll: true });
+})();
+</script>
+</body>
+</html>

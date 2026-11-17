@@ -10,14 +10,13 @@
     "added": "2025-04-14"
   },
   {
-    "slug": "csv-to-excel",
-    "name": "CSV to Excel Converter",
-    "emoji": "📊",
-    "description": "Drop in CSV files, get an Excel workbook. Combines several CSVs into one file, one sheet each.",
-    "tags": ["data", "csv", "excel", "convert"],
-    "keywords": ["xlsx", "spreadsheet", "merge", "combine", "sheets"],
-    "screenshot": "csv-to-excel/screenshot.png",
-    "added": "2025-06-03"
+    "slug": "spreadsheet-converter",
+    "name": "Spreadsheet Converter",
+    "description": "Convert between Excel, ODS, CSV, TSV, JSON, Markdown, HTML, SQL and LaTeX. Combines several files and sheets into one workbook.",
+    "tags": ["data", "excel", "csv", "json", "convert"],
+    "keywords": ["xlsx", "xls", "ods", "tsv", "markdown", "html", "sql", "latex", "spreadsheet", "merge", "combine", "sheets", "table", "csv to excel", "excel to csv"],
+    "screenshot": "spreadsheet-converter/screenshot.png",
+    "added": "2026-11-15"
   },
   {
     "slug": "fancy-screenshot",
@@ -50,6 +49,46 @@
     "keywords": ["scale", "shrink", "downscale", "aspect ratio", "rotate", "flip", "jpg", "jpeg", "webp", "compress"],
     "screenshot": "image-resize-crop/screenshot.png",
     "added": "2026-11-04"
+  },
+  {
+    "slug": "screenshot-annotator",
+    "name": "Screenshot Annotator",
+    "emoji": "📸",
+    "description": "Paste a screenshot and add arrows, boxes, text, numbered steps and highlights, blur sensitive parts, crop, then copy or download.",
+    "tags": ["images", "screenshot", "png", "annotate"],
+    "keywords": ["markup", "arrow", "highlight", "redact", "pixelate", "blur", "callout", "draw", "crop"],
+    "screenshot": "screenshot-annotator/screenshot.png",
+    "added": "2026-11-15"
+  },
+  {
+    "slug": "pdf-toolkit",
+    "name": "PDF Toolkit",
+    "emoji": "📝",
+    "description": "Merge, split, reorder, rotate, delete and crop PDF pages, remove passwords, and view or edit all document metadata.",
+    "tags": ["pdf", "merge", "split", "crop", "convert"],
+    "keywords": ["combine", "join", "extract pages", "reorder", "rotate", "unlock", "decrypt", "password", "metadata", "info", "trim", "margins"],
+    "screenshot": "pdf-toolkit/screenshot.png",
+    "added": "2026-11-15"
+  },
+  {
+    "slug": "qr-code",
+    "name": "QR Code Generator",
+    "emoji": "🔳",
+    "description": "QR codes for links, text, Wi-Fi, contacts and more, with dot and corner styles, colours, gradients and a centre logo. PNG and SVG export.",
+    "tags": ["qr", "images", "png", "svg"],
+    "keywords": ["qr code", "barcode", "wifi", "vcard", "contact", "logo", "gradient", "generator"],
+    "screenshot": "qr-code/screenshot.png",
+    "added": "2026-11-15"
+  },
+  {
+    "slug": "text-counter",
+    "emoji": "💬",
+    "name": "Word & Character Counter",
+    "description": "Count words, characters, sentences, lines and reading time live. Drop a PDF or Word file to count its extracted text.",
+    "tags": ["text", "pdf", "docx", "count"],
+    "keywords": ["word count", "character count", "letters", "lines", "sentences", "paragraphs", "reading time", "extract text", "odt", "limit", "case"],
+    "screenshot": "text-counter/screenshot.png",
+    "added": "2026-11-15"
   },
   {
     "slug": "colorblind-simulator",
