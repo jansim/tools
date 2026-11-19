@@ -12,6 +12,7 @@
   {
     "slug": "spreadsheet-converter",
     "name": "Spreadsheet Converter",
+    "emoji": "📊",
     "description": "Convert between Excel, ODS, CSV, TSV, JSON, Markdown, HTML, SQL and LaTeX. Combines several files and sheets into one workbook.",
     "tags": ["data", "excel", "csv", "json", "convert"],
     "keywords": ["xlsx", "xls", "ods", "tsv", "markdown", "html", "sql", "latex", "spreadsheet", "merge", "combine", "sheets", "table", "csv to excel", "excel to csv"],
@@ -54,9 +55,9 @@
     "slug": "screenshot-annotator",
     "name": "Screenshot Annotator",
     "emoji": "📸",
-    "description": "Paste a screenshot and add arrows, boxes, text, numbered steps and highlights, blur sensitive parts, crop, then copy or download.",
+    "description": "Paste a screenshot and add arrows, boxes, text, numbered steps and highlights, blur or pixelate sensitive parts, crop, then copy or download.",
     "tags": ["images", "screenshot", "png", "annotate"],
-    "keywords": ["markup", "arrow", "highlight", "redact", "pixelate", "blur", "callout", "draw", "crop"],
+    "keywords": ["markup", "arrow", "highlight", "redact", "pixelate", "blur", "callout", "draw", "crop", "layers", "faces"],
     "screenshot": "screenshot-annotator/screenshot.png",
     "added": "2026-11-15"
   },

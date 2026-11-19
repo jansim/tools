@@ -20,7 +20,7 @@
   --radius: 6px;
   --sans: 'Roboto', system-ui, sans-serif;
   --mono: 'Roboto Mono', ui-monospace, monospace;
-  --tb: 38px;
+  --tb: 36px;
 }
 @media (pointer: coarse) { :root { --tb: 44px; } }
 * { box-sizing: border-box; }
@@ -44,7 +44,7 @@ svg.i { width: 18px; height: 18px; flex: none; }
 .app { display: flex; flex-direction: column; height: 100vh; }
 .toolbar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--line); flex-wrap: wrap; background: var(--bg); position: relative; z-index: 3; }
 .group { display: flex; align-items: center; gap: 1px; flex-wrap: wrap; }
-.sep { width: 1px; height: 26px; background: var(--line); margin: 0 4px; }
+.sep { width: 1px; height: 26px; background: var(--line); margin: 0 2px; }
 .spacer { flex: 1; }
 .tool { width: var(--tb); height: var(--tb); border: 1px solid transparent; border-radius: var(--radius); background: none; color: var(--ink); cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center; position: relative; padding: 0; }
@@ -52,7 +52,7 @@ svg.i { width: 18px; height: 18px; flex: none; }
 .tool[aria-pressed=true] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-ink); }
 .tool:disabled { opacity: .35; cursor: default; background: none; border-color: transparent; }
 .tool svg { width: 20px; height: 20px; }
-.swatch { width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(0,0,0,.18); cursor: pointer; padding: 0; margin: 0 2px; position: relative; flex: none; }
+.swatch { width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(0,0,0,.18); cursor: pointer; padding: 0; margin: 0 1px; position: relative; flex: none; }
 .swatch[aria-pressed=true] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ink); }
 @media (pointer: coarse) { .swatch { width: 32px; height: 32px; } }
 .swatch.custom { background: conic-gradient(#f44, #fd4, #4d6, #4bf, #66f, #e4e, #f44); overflow: hidden; }
@@ -63,7 +63,8 @@ svg.i { width: 18px; height: 18px; flex: none; }
 .sz i { display: block; border-radius: 50%; background: var(--ink); }
 .sz[aria-pressed=true] i { background: var(--accent-ink); }
 
-.stage { flex: 1; position: relative; min-height: 0; overflow: hidden; background-color: #F3F3F3; touch-action: none; }
+.main { flex: 1; display: flex; min-height: 0; position: relative; }
+.stage { flex: 1; min-width: 0; position: relative; min-height: 0; overflow: hidden; background-color: #F3F3F3; touch-action: none; }
 canvas#view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; color: var(--muted); padding: 28px; background: var(--soft); }
 .empty svg.big { width: 56px; height: 56px; color: var(--faint); stroke-width: 1.2; }
@@ -83,7 +84,25 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
 .drop svg { width: 48px; height: 48px; }
 .info { position: absolute; left: 12px; bottom: 10px; z-index: 1; font: 12px var(--mono); color: var(--faint); pointer-events: none; }
 
+.layers { width: 300px; flex: none; border-left: 1px solid var(--line); background: var(--bg); display: flex; flex-direction: column; min-height: 0; z-index: 2; }
+.lhead { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px 6px 16px; border-bottom: 1px solid var(--line); font-size: 14px; font-weight: 400; }
+.lhead span small { color: var(--faint); font-weight: 300; margin-left: 6px; }
+.llist { list-style: none; margin: 0; padding: 6px; overflow: auto; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.lrow { display: flex; align-items: center; gap: 2px; border: 1px solid transparent; border-radius: var(--radius); }
+.lrow:hover { background: var(--soft); }
+.lrow[aria-selected=true] { background: var(--accent-bg); border-color: var(--accent); }
+.lrow.off .lname { opacity: .45; }
+.lname { flex: 1; min-width: 0; height: var(--tb); display: flex; align-items: center; gap: 8px; padding: 0 8px; border: 0; background: none; font: inherit; font-size: 14px; color: var(--ink); cursor: pointer; text-align: left; }
+.lname svg { width: 18px; height: 18px; flex: none; }
+.lname .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lname .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; border: 1px solid rgba(0,0,0,.2); margin-left: auto; }
+.lrow .tool { width: 30px; color: var(--muted); }
+.lrow .tool svg { width: 16px; height: 16px; }
+@media (pointer: coarse) { .lrow .tool { width: 40px; } }
+.lempty { margin: 0; padding: 16px; font-size: 14px; color: var(--faint); }
+
 @media (max-width: 760px) {
+  .layers { position: absolute; right: 0; top: 0; bottom: 0; width: min(300px, 88vw); box-shadow: -4px 0 18px rgba(0,0,0,.12); }
   .toolbar { padding: 6px 8px; gap: 4px; }
   .sep { display: none; }
   .spacer { flex-basis: 100%; height: 0; }
@@ -102,6 +121,14 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
     <symbol id="i-hl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14l-3 3v3h3l3-3"/><path d="M9 14l7-9 4 4-8 8z"/><path d="M4 21h16" opacity=".5"/></symbol>
     <symbol id="i-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6V4h14v2"/><path d="M12 4v16"/><path d="M9 20h6"/></symbol>
     <symbol id="i-step" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M10.5 9l2-1.5V16"/></symbol>
+    <symbol id="i-fat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17.5L13 8.5 10 5.5h9v9l-3-3-9 9z"/></symbol>
+    <symbol id="i-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" opacity=".55"/><circle cx="12" cy="12" r="8.5" stroke-dasharray="1.5 3"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 12.5l9 5 9-5"/><path d="M3 17l9 5 9-5" opacity=".5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-eyeoff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" opacity=".4"/><path d="M4 4l16 16"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></symbol>
+    <symbol id="i-dn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></symbol>
     <symbol id="i-blur" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="1"/><path d="M4 9.3h16M4 14.6h16M9.3 4v16M14.6 4v16"/><rect x="4" y="4" width="5.3" height="5.3" fill="currentColor" stroke="none"/><rect x="14.6" y="9.3" width="5.4" height="5.3" fill="currentColor" stroke="none"/><rect x="9.3" y="14.6" width="5.3" height="5.4" fill="currentColor" stroke="none"/></symbol>
     <symbol id="i-crop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></symbol>
     <symbol id="i-undo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></symbol>
@@ -128,10 +155,12 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
       <button class="tool" id="bDel" title="Delete selected (Del)" aria-label="Delete selected"><svg><use href="#i-trash"/></svg></button>
     </div>
     <div class="spacer"></div>
+    <button class="tool" id="bLayers" title="Layers (I)" aria-label="Layers" aria-pressed="false"><svg><use href="#i-layers"/></svg></button>
     <button class="tool" id="bOpen" title="Open image (Ctrl+O)" aria-label="Open image"><svg><use href="#i-open"/></svg></button>
     <button class="btn" id="bSave" title="Download PNG (Ctrl+S)" disabled><svg class="i"><use href="#i-down"/></svg>PNG</button>
     <button class="btn primary" id="bCopy" title="Copy image (Ctrl+C)" disabled><svg class="i"><use href="#i-copy"/></svg>Copy</button>
   </div>
+  <div class="main">
   <main class="stage" id="stage">
     <canvas id="view"></canvas>
     <span class="info" id="info"></span>
@@ -140,7 +169,7 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
       <h1>Annotate a screenshot</h1>
       <p>Paste a screenshot with <kbd>Ctrl</kbd>+<kbd>V</kbd>, drop an image anywhere, or choose a file. Nothing is uploaded.</p>
       <button class="btn primary big" id="pick"><svg class="i"><use href="#i-open"/></svg>Choose image</button>
-      <div class="keys"><kbd>V</kbd> select · <kbd>A</kbd> arrow · <kbd>L</kbd> line · <kbd>R</kbd> rectangle · <kbd>E</kbd> ellipse · <kbd>P</kbd> pen · <kbd>H</kbd> highlight · <kbd>T</kbd> text · <kbd>N</kbd> numbered step · <kbd>B</kbd> blur · <kbd>C</kbd> crop · <kbd>1</kbd>–<kbd>3</kbd> size · <kbd>Shift</kbd> straight lines &amp; squares</div>
+      <div class="keys"><kbd>V</kbd> select · <kbd>A</kbd> arrow · <kbd>W</kbd> fat arrow · <kbd>L</kbd> line · <kbd>R</kbd> rectangle · <kbd>E</kbd> ellipse · <kbd>P</kbd> pen · <kbd>H</kbd> highlight · <kbd>T</kbd> text · <kbd>N</kbd> numbered step · <kbd>B</kbd> blur · <kbd>X</kbd> pixelate · <kbd>C</kbd> crop · <kbd>1</kbd>–<kbd>3</kbd> size · <kbd>+</kbd>/<kbd>-</kbd> resize step · <kbd>I</kbd> layers · <kbd>Shift</kbd> straight lines &amp; squares</div>
     </div>
     <div class="cropbar" id="cropbar" hidden>
       <span class="dim" id="cropDim"></span>
@@ -150,6 +179,12 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
     </div>
     <div class="toast" id="toast" hidden></div>
   </main>
+  <aside class="layers" id="layers" aria-label="Layers" hidden>
+    <div class="lhead"><span>Layers<small id="lcount"></small></span><button class="tool" id="bLayersClose" title="Close (I)" aria-label="Close layers"><svg><use href="#i-x"/></svg></button></div>
+    <ol class="llist" id="llist"></ol>
+    <p class="lempty" id="lempty">Nothing drawn yet. Every arrow, box, text and blur shows up here.</p>
+  </aside>
+  </div>
 </div>
 
 <input type="file" id="fileInput" accept="image/*" hidden>
@@ -163,14 +198,20 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
   const FONT = 'Roboto, system-ui, -apple-system, "Segoe UI", sans-serif';
 
   const TOOLS = [
-    ['select', 'v', 'Select & move', 'i-select'], ['arrow', 'a', 'Arrow', 'i-arrow'], ['line', 'l', 'Line', 'i-line'],
+    ['select', 'v', 'Select & move', 'i-select'], ['arrow', 'a', 'Arrow', 'i-arrow'], ['fatarrow', 'w', 'Fat arrow', 'i-fat'], ['line', 'l', 'Line', 'i-line'],
     ['rect', 'r', 'Rectangle', 'i-rect'], ['ellipse', 'e', 'Ellipse', 'i-ellipse'], ['pen', 'p', 'Pen', 'i-pen'],
     ['highlight', 'h', 'Highlighter', 'i-hl'], ['text', 't', 'Text', 'i-text'], ['step', 'n', 'Numbered step', 'i-step'],
-    ['blur', 'b', 'Blur / pixelate', 'i-blur'], ['crop', 'c', 'Crop', 'i-crop'],
+    ['blur', 'b', 'Blur', 'i-soft'], ['pixelate', 'x', 'Pixelate', 'i-blur'], ['crop', 'c', 'Crop', 'i-crop'],
   ];
+  const TOOL = Object.fromEntries(TOOLS.map(([id, , label, icon]) => [id, { label, icon }]));
+  const isLine = (t) => t === 'line' || t === 'arrow' || t === 'fatarrow';
+  const isRedact = (t) => t === 'blur' || t === 'pixelate';
+  const isBox = (t) => t === 'rect' || t === 'ellipse' || isRedact(t);
+  // canvas filter support (missing in older Safari); fall back to down- and upscaling
+  const FILTER = (() => { try { const g = document.createElement('canvas').getContext('2d'); g.filter = 'blur(2px)'; return g.filter === 'blur(2px)'; } catch { return false; } })();
   const COLORS = ['#DC3522', '#F28C18', '#FFD43B', '#2E9E4F', '#2F6FB5', '#222222', '#FFFFFF'];
 
-  const prefs = { tool: 'arrow', color: '#DC3522', size: 1 };
+  const prefs = { tool: 'arrow', color: '#DC3522', size: 1, layers: false };
   try { Object.assign(prefs, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch {}
   if (prefs.tool === 'crop') prefs.tool = 'arrow';
   const savePrefs = () => { try { localStorage.setItem(KEY, JSON.stringify(prefs)); } catch {} };
@@ -190,6 +231,9 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
   const fontPx = (sz) => [5.5, 7.5, 11][sz] * unit();
   const stepR = (sz) => [5, 6.5, 8.5][sz] * unit();
   const hlW = (sz) => [5, 7.5, 11][sz] * unit();
+  const fatW = (sz) => [4.5, 6.5, 9.5][sz] * unit();
+  const blurR = (sz) => [3.5, 6, 10][sz] * unit();
+  const stepRad = (s) => s.r || stepR(s.size);
 
   // ---------- history ----------
   const snapshot = () => JSON.stringify(doc, (k, v) => k.startsWith('_') ? undefined : v);
@@ -234,7 +278,61 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
     $('bDel').disabled = !selId;
     $('bSave').disabled = $('bCopy').disabled = !img;
     stage.style.cursor = !img ? 'default' : prefs.tool === 'select' ? 'default' : prefs.tool === 'text' ? 'text' : 'crosshair';
+    $('bLayers').setAttribute('aria-pressed', !!prefs.layers);
+    $('layers').hidden = !prefs.layers;
+    renderLayers();
   }
+
+  // ---------- layers ----------
+  // listed top first, in paint order: annotations above blurs
+  const layerOrder = () => [...doc.shapes.filter((s) => !isRedact(s.type)).reverse(), ...doc.shapes.filter((s) => isRedact(s.type)).reverse()];
+  function layerLabel(s) {
+    if (s.type === 'text') return s.text ? `“${s.text.split('\n')[0].slice(0, 40)}”` : 'Text';
+    if (s.type === 'step') return `Step ${s.n}`;
+    return TOOL[s.type]?.label || s.type;
+  }
+  function neighbour(s, dir) { // dir +1 = towards the top
+    const a = doc.shapes, i = a.indexOf(s);
+    for (let j = i + dir; j >= 0 && j < a.length; j += dir) if (isRedact(a[j].type) === isRedact(s.type)) return j;
+    return -1;
+  }
+  function renderLayers() {
+    if (!prefs.layers) return;
+    const list = $('llist'), items = layerOrder();
+    $('lempty').hidden = !!items.length || !img;
+    $('lcount').textContent = items.length ? String(items.length) : '';
+    list.textContent = '';
+    for (const s of items) {
+      const li = document.createElement('li');
+      li.className = 'lrow' + (s.hidden ? ' off' : ''); li.setAttribute('aria-selected', s.id === selId);
+      const name = document.createElement('button'); name.className = 'lname'; name.title = 'Select';
+      name.innerHTML = `<svg><use href="#${TOOL[s.type]?.icon || 'i-rect'}"/></svg><span class="t"></span>` + (isRedact(s.type) ? '' : `<i class="dot" style="background:${s.color}"></i>`);
+      name.querySelector('.t').textContent = layerLabel(s);
+      name.addEventListener('click', () => selectLayer(s));
+      name.addEventListener('dblclick', () => { if (s.type === 'text' && !s.hidden) startEdit(s); });
+      li.appendChild(name);
+      const btn = (icon, label, fn, off) => { const b = document.createElement('button'); b.className = 'tool'; b.title = label; b.setAttribute('aria-label', label); b.innerHTML = `<svg><use href="#${icon}"/></svg>`; b.disabled = !!off; b.addEventListener('click', fn); li.appendChild(b); };
+      btn(s.hidden ? 'i-eyeoff' : 'i-eye', s.hidden ? 'Show' : 'Hide', () => { commit(); s.hidden = !s.hidden; if (s.hidden && selId === s.id) selId = null; draw(); syncButtons(); });
+      btn('i-up', 'Move up', () => reorder(s, 1), neighbour(s, 1) < 0);
+      btn('i-dn', 'Move down', () => reorder(s, -1), neighbour(s, -1) < 0);
+      btn('i-trash', 'Delete', () => { commit(); doc.shapes = doc.shapes.filter((x) => x !== s); if (selId === s.id) selId = null; draw(); syncButtons(); });
+      list.appendChild(li);
+      if (s.id === selId) requestAnimationFrame(() => li.scrollIntoView({ block: 'nearest' }));
+    }
+  }
+  function selectLayer(s) {
+    finishEdit();
+    if (prefs.tool !== 'select') setTool('select');
+    if (s.hidden) { commit(); s.hidden = false; }
+    selId = s.id; draw(); syncButtons();
+  }
+  function reorder(s, dir) {
+    const j = neighbour(s, dir); if (j < 0) return;
+    commit();
+    const a = doc.shapes, i = a.indexOf(s); [a[i], a[j]] = [a[j], a[i]];
+    draw(); syncButtons();
+  }
+  function toggleLayers() { prefs.layers = !prefs.layers; savePrefs(); syncButtons(); }
 
   const selected = () => doc.shapes.find((s) => s.id === selId);
   function setTool(t) {
@@ -250,14 +348,14 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
   function setColor(c) {
     prefs.color = c; savePrefs();
     const s = prefs.tool === 'select' && selected();
-    if (s && s.type !== 'blur' && s.color !== c) { commit(); s.color = c; }
+    if (s && !isRedact(s.type) && s.color !== c) { commit(); s.color = c; }
     if (editing) { editing.shape.color = c; styleEditor(); }
     draw(); syncButtons();
   }
   function setSize(i) {
     prefs.size = i; savePrefs();
     const s = prefs.tool === 'select' && selected();
-    if (s && s.size !== i) { commit(); s.size = i; s._bb = null; }
+    if (s && (s.size !== i || s.r)) { commit(); s.size = i; delete s.r; s._bb = null; }
     if (editing) { editing.shape.size = i; styleEditor(); }
     draw(); syncButtons();
   }
@@ -281,7 +379,7 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
     const x = Math.max(0, Math.floor(s.x)), y = Math.max(0, Math.floor(s.y));
     const w = Math.min(source.width - x, Math.ceil(s.w + s.x - x)), h = Math.min(source.height - y, Math.ceil(s.h + s.y - y));
     if (w < 1 || h < 1) return;
-    const block = Math.max(6, Math.round(Math.max(source.width, source.height) / 90));
+    const block = Math.max(4, Math.round(Math.max(source.width, source.height) / 90 * [0.6, 1, 1.6][s.size ?? 1]));
     const sw = Math.max(1, Math.ceil(w / block)), sh = Math.max(1, Math.ceil(h / block));
     const tmp = pixelate.tmp ||= document.createElement('canvas');
     tmp.width = sw; tmp.height = sh;
@@ -295,6 +393,30 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
     if (sw * block > w || sh * block > h) {
       c.save(); c.beginPath(); c.rect(x, y, w, h); c.clip(); c.imageSmoothingEnabled = false; c.drawImage(tmp, 0, 0, sw, sh, x, y, sw * block, sh * block); c.restore();
     }
+  }
+
+  function softBlur(c, s, r, source) {
+    const x = Math.max(0, Math.floor(r.x)), y = Math.max(0, Math.floor(r.y));
+    const w = Math.min(source.width - x, Math.ceil(r.w + r.x - x)), h = Math.min(source.height - y, Math.ceil(r.h + r.y - y));
+    if (w < 1 || h < 1) return;
+    const rad = blurR(s.size), key = [x, y, w, h, rad].join();
+    if (!s._blur || s._blur.key !== key) {
+      const pad = Math.ceil(rad * 2.5);
+      const sx = Math.max(0, x - pad), sy = Math.max(0, y - pad);
+      const cw = Math.min(source.width, x + w + pad) - sx, ch = Math.min(source.height, y + h + pad) - sy;
+      const out = document.createElement('canvas'); out.width = w; out.height = h;
+      const g = out.getContext('2d');
+      g.drawImage(source, sx, sy, cw, ch, sx - x, sy - y, cw, ch); // underlay so image edges don't fade to transparent
+      if (FILTER) { g.filter = `blur(${rad}px)`; g.drawImage(source, sx, sy, cw, ch, sx - x, sy - y, cw, ch); }
+      else {
+        const f = Math.max(2, rad / 1.5), tw = Math.max(1, Math.round(cw / f)), th = Math.max(1, Math.round(ch / f));
+        const t = document.createElement('canvas'); t.width = tw; t.height = th;
+        const tg = t.getContext('2d'); tg.imageSmoothingQuality = 'high'; tg.drawImage(source, sx, sy, cw, ch, 0, 0, tw, th);
+        g.imageSmoothingQuality = 'high'; g.drawImage(t, 0, 0, tw, th, sx - x, sy - y, cw, ch);
+      }
+      s._blur = { key, out };
+    }
+    c.drawImage(s._blur.out, x, y);
   }
 
   function textLayout(c, s) {
@@ -329,6 +451,19 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
         } else { c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); }
         break;
       }
+      case 'fatarrow': {
+        const { x1, y1, x2, y2 } = s, L = Math.hypot(x2 - x1, y2 - y1);
+        if (L < 0.5) break;
+        const W = fatW(s.size), ux = (x2 - x1) / L, uy = (y2 - y1) / L;
+        const hl = Math.min(W * 1.9, L * 0.6), hw = W * 1.25, sw = W / 2, tw = W * 0.2, se = L - hl;
+        const P = (t, o) => [x1 + ux * t - uy * o, y1 + uy * t + ux * o];
+        c.beginPath();
+        [P(0, -tw), P(se, -sw), P(se, -hw), P(L, 0), P(se, hw), P(se, sw), P(0, tw)].forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y));
+        c.closePath();
+        c.lineWidth = Math.max(1.5, W * 0.18); c.strokeStyle = isLight(s.color) ? 'rgba(0,0,0,.6)' : '#fff';
+        c.stroke(); c.fill();
+        break;
+      }
       case 'rect': c.beginPath(); c.roundRect ? c.roundRect(s.x, s.y, s.w, s.h, Math.min(lw, Math.abs(s.w) / 2, Math.abs(s.h) / 2)) : c.rect(s.x, s.y, s.w, s.h); c.stroke(); break;
       case 'ellipse': c.beginPath(); c.ellipse(s.x + s.w / 2, s.y + s.h / 2, Math.abs(s.w / 2), Math.abs(s.h / 2), 0, 0, Math.PI * 2); c.stroke(); break;
       case 'pen': case 'highlight': {
@@ -352,7 +487,7 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
         break;
       }
       case 'step': {
-        const r = stepR(s.size);
+        const r = stepRad(s);
         c.beginPath(); c.arc(s.x, s.y, r, 0, Math.PI * 2); c.fill();
         c.lineWidth = Math.max(1.5, r / 7); c.strokeStyle = isLight(s.color) ? 'rgba(0,0,0,.6)' : '#fff'; c.stroke();
         c.fillStyle = isLight(s.color) ? '#111' : '#fff';
@@ -368,8 +503,8 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
   function paint(c, { crop } = {}) {
     if (crop) { c.save(); c.beginPath(); c.rect(crop.x, crop.y, crop.w, crop.h); c.clip(); }
     c.drawImage(img, 0, 0);
-    for (const s of doc.shapes) if (s.type === 'blur') pixelate(c, norm(s), img);
-    for (const s of doc.shapes) if (s.type !== 'blur') drawShape(c, s);
+    for (const s of doc.shapes) if (isRedact(s.type) && !s.hidden) (s.type === 'blur' ? softBlur(c, s, norm(s), img) : pixelate(c, { ...norm(s), size: s.size }, img));
+    for (const s of doc.shapes) if (!isRedact(s.type) && !s.hidden) drawShape(c, s);
     if (crop) c.restore();
   }
   const norm = (s) => ({ x: Math.min(s.x, s.x + s.w), y: Math.min(s.y, s.y + s.h), w: Math.abs(s.w), h: Math.abs(s.h) });
@@ -423,18 +558,22 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
   // ---------- geometry ----------
   function bbox(s) {
     switch (s.type) {
-      case 'line': case 'arrow': return { x: Math.min(s.x1, s.x2), y: Math.min(s.y1, s.y2), w: Math.abs(s.x2 - s.x1), h: Math.abs(s.y2 - s.y1) };
-      case 'rect': case 'ellipse': case 'blur': return norm(s);
+      case 'line': case 'arrow': case 'fatarrow': {
+        const m = s.type === 'fatarrow' ? fatW(s.size) * 1.25 : 0;
+        return { x: Math.min(s.x1, s.x2) - m, y: Math.min(s.y1, s.y2) - m, w: Math.abs(s.x2 - s.x1) + 2 * m, h: Math.abs(s.y2 - s.y1) + 2 * m };
+      }
+      case 'rect': case 'ellipse': case 'blur': case 'pixelate': return norm(s);
       case 'pen': case 'highlight': { const xs = s.pts.map((p) => p[0]), ys = s.pts.map((p) => p[1]); const x = Math.min(...xs), y = Math.min(...ys); return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y }; }
       case 'text': if (!s._bb) { const L = textLayout(ctx, s); s._bb = { x: s.x, y: s.y, w: L.w, h: L.h }; } return s._bb;
-      case 'step': { const r = stepR(s.size); return { x: s.x - r, y: s.y - r, w: 2 * r, h: 2 * r }; }
+      case 'step': { const r = stepRad(s); return { x: s.x - r, y: s.y - r, w: 2 * r, h: 2 * r }; }
     }
   }
   const rectHandles = (r) => [{ k: 'nw', x: r.x, y: r.y }, { k: 'ne', x: r.x + r.w, y: r.y }, { k: 'sw', x: r.x, y: r.y + r.h }, { k: 'se', x: r.x + r.w, y: r.y + r.h },
     { k: 'n', x: r.x + r.w / 2, y: r.y }, { k: 's', x: r.x + r.w / 2, y: r.y + r.h }, { k: 'w', x: r.x, y: r.y + r.h / 2 }, { k: 'e', x: r.x + r.w, y: r.y + r.h / 2 }];
   function handles(s) {
-    if (s.type === 'line' || s.type === 'arrow') return [{ k: 'p1', x: s.x1, y: s.y1 }, { k: 'p2', x: s.x2, y: s.y2 }];
-    if (s.type === 'rect' || s.type === 'ellipse' || s.type === 'blur') return rectHandles(norm(s));
+    if (isLine(s.type)) return [{ k: 'p1', x: s.x1, y: s.y1 }, { k: 'p2', x: s.x2, y: s.y2 }];
+    if (isBox(s.type)) return rectHandles(norm(s));
+    if (s.type === 'step') return rectHandles(bbox(s)).slice(0, 4);
     return [];
   }
   function segDist(px, py, x1, y1, x2, y2) {
@@ -446,15 +585,20 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
     const tol = Math.max(strokeW(s.size), 7 / view.s);
     switch (s.type) {
       case 'line': case 'arrow': return segDist(p.x, p.y, s.x1, s.y1, s.x2, s.y2) <= tol;
+      case 'fatarrow': return segDist(p.x, p.y, s.x1, s.y1, s.x2, s.y2) <= tol / 2 + fatW(s.size) * 0.8;
       case 'rect': { const r = norm(s); const inO = p.x >= r.x - tol && p.x <= r.x + r.w + tol && p.y >= r.y - tol && p.y <= r.y + r.h + tol; const inI = p.x > r.x + tol && p.x < r.x + r.w - tol && p.y > r.y + tol && p.y < r.y + r.h - tol; return inO && !inI; }
       case 'ellipse': { const r = norm(s); const cx = r.x + r.w / 2, cy = r.y + r.h / 2, rx = r.w / 2 || 1, ry = r.h / 2 || 1; const d = Math.hypot((p.x - cx) / rx, (p.y - cy) / ry); return Math.abs(d - 1) * Math.min(rx, ry) <= tol; }
-      case 'blur': { const r = norm(s); return p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h; }
+      case 'blur': case 'pixelate': { const r = norm(s); return p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h; }
       case 'pen': case 'highlight': { const t = s.type === 'highlight' ? hlW(s.size) / 2 + tol / 2 : tol; for (let i = 0; i < s.pts.length; i++) { const a = s.pts[i], b = s.pts[i + 1] || a; if (segDist(p.x, p.y, a[0], a[1], b[0], b[1]) <= t) return true; } return false; }
       case 'text': { const b = bbox(s); return p.x >= b.x - tol && p.x <= b.x + b.w + tol && p.y >= b.y - tol && p.y <= b.y + b.h + tol; }
-      case 'step': return Math.hypot(p.x - s.x, p.y - s.y) <= stepR(s.size) + tol / 2;
+      case 'step': return Math.hypot(p.x - s.x, p.y - s.y) <= stepRad(s) + tol / 2;
     }
   }
-  const topHit = (p) => { for (let i = doc.shapes.length - 1; i >= 0; i--) if (hit(doc.shapes[i], p)) return doc.shapes[i]; return null; };
+  // annotations paint above blurs, so search them first
+  const topHit = (p) => {
+    for (const red of [false, true]) for (let i = doc.shapes.length - 1; i >= 0; i--) { const s = doc.shapes[i]; if (!s.hidden && isRedact(s.type) === red && hit(s, p)) return s; }
+    return null;
+  };
   function handleAt(hs, p) {
     const r = (matchMedia('(pointer: coarse)').matches ? 16 : 9) / view.s;
     return hs.find((h) => Math.hypot(h.x - p.x, h.y - p.y) <= r);
@@ -462,7 +606,7 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
 
   function moveShape(s, o, dx, dy) {
     switch (s.type) {
-      case 'line': case 'arrow': s.x1 = o.x1 + dx; s.y1 = o.y1 + dy; s.x2 = o.x2 + dx; s.y2 = o.y2 + dy; break;
+      case 'line': case 'arrow': case 'fatarrow': s.x1 = o.x1 + dx; s.y1 = o.y1 + dy; s.x2 = o.x2 + dx; s.y2 = o.y2 + dy; break;
       case 'pen': case 'highlight': s.pts = o.pts.map(([x, y]) => [x + dx, y + dy]); break;
       default: s.x = o.x + dx; s.y = o.y + dy;
     }
@@ -514,13 +658,15 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
     if (tool === 'text') { const t = { id: idN++, type: 'text', x: p.x, y: p.y - fontPx(prefs.size) * 0.6, text: '', color: prefs.color, size: prefs.size }; commit(); doc.shapes.push(t); selId = t.id; startEdit(t, true); return; }
     if (tool === 'step') {
       const n = doc.shapes.filter((x) => x.type === 'step').reduce((m, x) => Math.max(m, x.n), 0) + 1;
+      const last = [...doc.shapes].reverse().find((x) => x.type === 'step');
       commit(); const st = { id: idN++, type: 'step', x: p.x, y: p.y, n, color: prefs.color, size: prefs.size };
+      if (last && last.r && last.size === prefs.size) st.r = last.r; // keep a resized step's size for the next ones
       doc.shapes.push(st); selId = st.id; act = { kind: 'move', s: st, p0: p, o: { ...st }, moved: false, fresh: true };
       draw(); syncButtons(); return;
     }
     commit();
     let ns;
-    if (tool === 'line' || tool === 'arrow') ns = { type: tool, x1: p.x, y1: p.y, x2: p.x, y2: p.y };
+    if (isLine(tool)) ns = { type: tool, x1: p.x, y1: p.y, x2: p.x, y2: p.y };
     else if (tool === 'pen' || tool === 'highlight') ns = { type: tool, pts: [[p.x, p.y]] };
     else ns = { type: tool, x: p.x, y: p.y, w: 0, h: 0 };
     Object.assign(ns, { id: idN++, color: prefs.color, size: prefs.size });
@@ -538,7 +684,7 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
     const s = act.s;
     switch (act.kind) {
       case 'draw':
-        if (s.type === 'line' || s.type === 'arrow') { const q = e.shiftKey ? snap45(s.x1, s.y1, p.x, p.y) : p; s.x2 = q.x; s.y2 = q.y; }
+        if (isLine(s.type)) { const q = e.shiftKey ? snap45(s.x1, s.y1, p.x, p.y) : p; s.x2 = q.x; s.y2 = q.y; }
         else if (s.type === 'pen' || s.type === 'highlight') {
           if (e.shiftKey) s.pts = [s.pts[0], (() => { const q = snap45(s.pts[0][0], s.pts[0][1], p.x, p.y); return [q.x, q.y]; })()];
           else { const l = s.pts[s.pts.length - 1]; if (Math.hypot(l[0] - p.x, l[1] - p.y) * view.s > 1.5) s.pts.push([p.x, p.y]); }
@@ -560,7 +706,8 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
           const other = act.k === 'p1' ? { x: s.x2, y: s.y2 } : { x: s.x1, y: s.y1 };
           const q = e.shiftKey ? snap45(other.x, other.y, p.x, p.y) : p;
           if (act.k === 'p1') { s.x1 = q.x; s.y1 = q.y; } else { s.x2 = q.x; s.y2 = q.y; }
-        } else Object.assign(s, resizeRect(norm(act.o), act.k, p, e.shiftKey));
+        } else if (s.type === 'step') { s.r = Math.max(unit() * 2.5, Math.max(Math.abs(p.x - s.x), Math.abs(p.y - s.y))); s._bb = null; }
+        else Object.assign(s, resizeRect(norm(act.o), act.k, p, e.shiftKey));
         break;
       case 'crop-new': { const q = clampP(p); cropDraft = { x: Math.min(q.x, act.p0.x), y: Math.min(q.y, act.p0.y), w: Math.abs(q.x - act.p0.x), h: Math.abs(q.y - act.p0.y) }; break; }
       case 'crop-move': {
@@ -576,9 +723,9 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
     const a = act; act = null;
     if (a.kind === 'draw') {
       const b = bbox(a.s);
-      const tiny = Math.max(b.w, b.h) * view.s < 4;
+      const tiny = (isLine(a.s.type) ? Math.hypot(a.s.x2 - a.s.x1, a.s.y2 - a.s.y1) : Math.max(b.w, b.h)) * view.s < 4;
       if (tiny && a.s.type !== 'pen' && a.s.type !== 'highlight') { doc.shapes = doc.shapes.filter((x) => x !== a.s); undoStack.pop(); selId = null; }
-      else if (a.s.type === 'rect' || a.s.type === 'ellipse' || a.s.type === 'blur') Object.assign(a.s, norm(a.s));
+      else if (isBox(a.s.type)) Object.assign(a.s, norm(a.s));
     }
     if (a.kind === 'move' && !a.moved && !a.fresh) undoStack.pop();
     if (a.kind === 'crop-new' && (!cropDraft || cropDraft.w * view.s < 4 || cropDraft.h * view.s < 4)) cropDraft = { x: 0, y: 0, w: img.width, h: img.height };
@@ -596,7 +743,7 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
       return;
     }
     const s = selected();
-    if (s && handleAt(handles(s), p)) { stage.style.cursor = 'pointer'; return; }
+    if (s && handleAt(handles(s), p)) { const h = handleAt(handles(s), p); stage.style.cursor = s.type === 'step' ? (h.k === 'nw' || h.k === 'se' ? 'nwse-resize' : 'nesw-resize') : 'pointer'; return; }
     if ((prefs.tool === 'select' && topHit(p)) || (s && hit(s, p))) { stage.style.cursor = 'move'; return; }
     stage.style.cursor = prefs.tool === 'select' ? 'default' : prefs.tool === 'text' ? 'text' : 'crosshair';
   }
@@ -691,6 +838,8 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
   $('bUndo').addEventListener('click', undo);
   $('bRedo').addEventListener('click', redo);
   $('bDel').addEventListener('click', deleteSel);
+  $('bLayers').addEventListener('click', toggleLayers);
+  $('bLayersClose').addEventListener('click', toggleLayers);
   function deleteSel() { const s = selected(); if (!s) return; commit(); doc.shapes = doc.shapes.filter((x) => x !== s); selId = null; draw(); syncButtons(); }
 
   let tt;
@@ -736,10 +885,16 @@ textarea.edit { position: absolute; z-index: 2; border: 1px dashed rgba(0,0,0,.4
       else if (k === 'c' && img && !String(window.getSelection())) { e.preventDefault(); copy(); }
       return;
     }
+    if (k === 'i' && !e.shiftKey) { toggleLayers(); return; }
     if (!img) return;
     const tool = TOOLS.find((t) => t[1] === k);
     if (tool && !e.shiftKey) { setTool(tool[0]); return; }
     if (k === '1' || k === '2' || k === '3') { setSize(+k - 1); return; }
+    if (k === '+' || k === '=' || k === '-') {
+      const s = selected(); if (s?.type !== 'step') return;
+      e.preventDefault(); if (!e.repeat) commit();
+      s.r = Math.max(unit() * 2.5, stepRad(s) * (k === '-' ? 1 / 1.15 : 1.15)); s._bb = null; draw(); return;
+    }
     if (k === 'delete' || k === 'backspace') { e.preventDefault(); deleteSel(); return; }
     if (k === 'escape') { if (prefs.tool === 'crop') { cropDraft = null; setTool('select'); } else { selId = null; draw(); syncButtons(); } return; }
     if (k === 'enter') { if (prefs.tool === 'crop') applyCrop(); else { const s = selected(); if (s?.type === 'text') startEdit(s); } return; }

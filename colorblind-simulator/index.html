@@ -86,6 +86,8 @@ canvas { display: block; }
 .divider:focus-visible { outline: none; }
 .divider:focus-visible .knob { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+.stage.zoomed { padding-top: 68px; }
+.back { position: absolute; top: 12px; left: 12px; z-index: 4; height: 44px; background: var(--bg); }
 .toast { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); max-width: calc(100% - 32px);
   background: var(--ink); color: #fff; padding: 10px 16px; border-radius: var(--radius); font-size: 14px; font-weight: 400;
   box-shadow: 0 4px 16px rgba(0,0,0,.15); z-index: 5; }
@@ -172,6 +174,7 @@ fieldset:disabled .sec { opacity: .45; }
       <div class="tag r" id="tagR"></div>
       <div class="divider" id="divider" tabindex="0" role="slider" aria-label="Comparison position" aria-valuemin="0" aria-valuemax="100"><div class="knob"><svg><use href="#i-lr"/></svg></div></div>
     </div>
+    <button class="btn back" id="back" hidden title="Back to all types (A)"><svg><use href="#i-grid"/></svg>All types <kbd>A</kbd></button>
     <div class="toast" id="toast" role="status" hidden></div>
   </main>
 
@@ -221,7 +224,7 @@ fieldset:disabled .sec { opacity: .45; }
           <button class="btn primary" id="dl"><svg><use href="#i-down"/></svg>Download</button>
           <button class="btn" id="copy"><svg><use href="#i-copy"/></svg>Copy</button>
         </div>
-        <div class="keys"><kbd>1</kbd>–<kbd>4</kbd> type · <kbd>V</kbd> view · <kbd>Ctrl</kbd>+<kbd>S</kbd> download · <kbd>Ctrl</kbd>+<kbd>C</kbd> copy · <kbd>Ctrl</kbd>+<kbd>O</kbd> open</div>
+        <div class="keys"><kbd>1</kbd>–<kbd>4</kbd> type · <kbd>V</kbd> view · <kbd>A</kbd> all · <kbd>Ctrl</kbd>+<kbd>S</kbd> download · <kbd>Ctrl</kbd>+<kbd>C</kbd> copy · <kbd>Ctrl</kbd>+<kbd>O</kbd> open</div>
         <div class="note">Red, green and blue types use the model of Machado, Oliveira &amp; Fernandes (2009), applied in linear RGB. The paper models tritan vision only roughly and doesn't cover achromatopsia, which is shown here as plain luminance. Everyone sees colour a little differently, so treat it as a guide.</div>
       </section>
     </fieldset>
@@ -357,7 +360,7 @@ fieldset:disabled .sec { opacity: .45; }
     const b = document.createElement('button');
     b.className = 'type'; b.dataset.type = t.id;
     b.innerHTML = `<b></b><kbd class="k">${i + 1}</kbd><small>${t.what} · ${t.freq}</small>`;
-    b.addEventListener('click', () => { opts.type = t.id; save(); syncPanel(); render(); });
+    b.addEventListener('click', () => { opts.type = t.id; if (opts.view === 'grid') opts.view = 'single'; save(); syncPanel(); render(); });
     typesEl.appendChild(b);
   });
   document.querySelectorAll('#views .chip').forEach((b) => b.addEventListener('click', () => { opts.view = b.dataset.view; save(); syncPanel(); render(); }));
@@ -372,7 +375,7 @@ fieldset:disabled .sec { opacity: .45; }
     document.querySelectorAll('#views .chip').forEach((b) => b.setAttribute('aria-pressed', b.dataset.view === opts.view));
     typesEl.querySelectorAll('.type').forEach((b) => {
       const t = TYPES.find((x) => x.id === b.dataset.type);
-      b.setAttribute('aria-pressed', t.id === opts.type);
+      b.setAttribute('aria-pressed', t.id === opts.type && opts.view !== 'grid');
       b.querySelector('b').textContent = typeName(t, opts.sev);
     });
     sev.value = opts.sev;
@@ -416,6 +419,8 @@ fieldset:disabled .sec { opacity: .45; }
     if (!prev) return;
     const [aw, ah] = avail(), a = prev.width / prev.height;
     grid.hidden = opts.view !== 'grid';
+    $('back').hidden = opts.view === 'grid';
+    stage.classList.toggle('zoomed', opts.view !== 'grid');
     cmp.hidden = opts.view === 'grid';
     if (opts.view === 'grid') {
       const n = tiles.length, gap = 12, cap = 24;
@@ -691,6 +696,7 @@ fieldset:disabled .sec { opacity: .45; }
       if (opts.view === 'grid') opts.view = 'single';
       save(); syncPanel(); render(); return;
     }
+    if (k === 'a') { showAll(); return; }
     if (k === 'v') {
       const v = ['grid', 'split', 'single'];
       opts.view = v[(v.indexOf(opts.view) + 1) % v.length];
@@ -705,6 +711,9 @@ fieldset:disabled .sec { opacity: .45; }
     t.textContent = msg; t.className = 'toast' + (err ? ' err' : ''); t.hidden = false;
     clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, err ? 5000 : 2500);
   }
+
+  function showAll() { opts.view = 'grid'; save(); syncPanel(); render(); }
+  $('back').addEventListener('click', showAll);
 
   let raf = 0;
   new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(render); }).observe(stage);
